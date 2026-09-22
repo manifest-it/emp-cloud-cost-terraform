@@ -1,6 +1,6 @@
-# Manifest Cloud Cost Terraform
+# empirik Cloud Cost Terraform
 
-Public Terraform modules for deploying Manifest cloud cost connectors into a
+Public Terraform modules for deploying empirik cloud cost connectors into a
 customer's cloud environment. Runtime binaries remain private, immutable, and
 versioned in JFrog Artifactory.
 

@@ -1,0 +1,60 @@
+# Manifest Cloud Cost Terraform
+
+Public Terraform modules for deploying Manifest cloud cost connectors into a
+customer's cloud environment. Runtime binaries remain private, immutable, and
+versioned in JFrog Artifactory.
+
+## Layout
+
+```text
+modules/
+  aws/       AWS Lambda and EventBridge Scheduler connector
+  gcp/       Reserved for the future GCP connector
+examples/
+  aws/       Minimal AWS module usage
+```
+
+AWS and GCP are independent modules. They do not share provider conditionals,
+state, or deployment resources.
+
+## AWS usage
+
+Export the customer-scoped, read-only JFrog token before running Terraform:
+
+```bash
+export JFROG_ACCESS_TOKEN="<read-only-token>"
+```
+
+Pin both the Terraform repository tag and the immutable runtime artifact:
+
+```hcl
+module "manifest_cloud_cost_aws" {
+  source = "git::https://github.com/manifest-it/emp-cloud-cost-terraform.git//modules/aws?ref=v0.1.0"
+
+  artifact_version      = "0.2.2"
+  jfrog_artifactory_url = "https://manifestit.jfrog.io/artifactory"
+  jfrog_repository      = "mit-cloud-cost-agent"
+
+  # See modules/aws/README.md for the remaining required inputs.
+}
+```
+
+Git sources do not support Terraform's `version` argument. The `ref` pins the
+infrastructure module, while `artifact_version` pins the collector binary.
+
+## Security model
+
+- JFrog credentials are read only from `JFROG_ACCESS_TOKEN`; they are never
+  Terraform variables and therefore are not written to plans or state.
+- Terraform verifies the runtime SHA-256 before copying it into customer-owned
+  cloud storage.
+- The deployed runtime does not need JFrog access.
+- Every provider module uses least-privilege cloud IAM and outbound HTTPS.
+- Generated state, plans, `.tfvars`, and downloaded artifacts are ignored.
+
+The module repository contains no collector source, binaries, credentials,
+customer identifiers, or Manifest production configuration.
+
+## License
+
+Apache License 2.0. See [LICENSE.txt](LICENSE.txt).

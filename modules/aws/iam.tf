@@ -1,0 +1,100 @@
+data "aws_iam_policy_document" "lambda_assume_role" {
+  statement {
+    effect  = "Allow"
+    actions = ["sts:AssumeRole"]
+
+    principals {
+      type        = "Service"
+      identifiers = ["lambda.amazonaws.com"]
+    }
+  }
+}
+
+resource "aws_iam_role" "collector" {
+  name               = "${local.resource_name}-runtime"
+  assume_role_policy = data.aws_iam_policy_document.lambda_assume_role.json
+  tags               = var.tags
+}
+
+data "aws_iam_policy_document" "collector" {
+  statement {
+    sid       = "ReadCostExplorer"
+    effect    = "Allow"
+    actions   = ["ce:GetCostAndUsage"]
+    resources = ["*"]
+  }
+
+  statement {
+    sid       = "ReadVictoriaMetricsToken"
+    effect    = "Allow"
+    actions   = ["secretsmanager:GetSecretValue"]
+    resources = [var.victoriametrics_token_secret_arn]
+  }
+
+  dynamic "statement" {
+    for_each = var.victoriametrics_secret_kms_key_arn == null ? [] : [var.victoriametrics_secret_kms_key_arn]
+
+    content {
+      sid       = "DecryptVictoriaMetricsToken"
+      effect    = "Allow"
+      actions   = ["kms:Decrypt"]
+      resources = [statement.value]
+    }
+  }
+
+  statement {
+    sid    = "WriteFunctionLogs"
+    effect = "Allow"
+    actions = [
+      "logs:CreateLogStream",
+      "logs:PutLogEvents",
+    ]
+    resources = ["${aws_cloudwatch_log_group.collector.arn}:*"]
+  }
+}
+
+resource "aws_iam_role_policy" "collector" {
+  name   = "${local.resource_name}-runtime"
+  role   = aws_iam_role.collector.id
+  policy = data.aws_iam_policy_document.collector.json
+}
+
+data "aws_iam_policy_document" "scheduler_assume_role" {
+  statement {
+    effect  = "Allow"
+    actions = ["sts:AssumeRole"]
+
+    principals {
+      type        = "Service"
+      identifiers = ["scheduler.amazonaws.com"]
+    }
+  }
+}
+
+resource "aws_iam_role" "scheduler" {
+  name               = "${local.resource_name}-scheduler"
+  assume_role_policy = data.aws_iam_policy_document.scheduler_assume_role.json
+  tags               = var.tags
+}
+
+data "aws_iam_policy_document" "scheduler" {
+  statement {
+    sid       = "InvokeCollector"
+    effect    = "Allow"
+    actions   = ["lambda:InvokeFunction"]
+    resources = [aws_lambda_function.collector.arn]
+  }
+
+  statement {
+    sid       = "SendFailedInvocationToDLQ"
+    effect    = "Allow"
+    actions   = ["sqs:SendMessage"]
+    resources = [aws_sqs_queue.scheduler_dlq.arn]
+  }
+}
+
+resource "aws_iam_role_policy" "scheduler" {
+  name   = "${local.resource_name}-scheduler"
+  role   = aws_iam_role.scheduler.id
+  policy = data.aws_iam_policy_document.scheduler.json
+}

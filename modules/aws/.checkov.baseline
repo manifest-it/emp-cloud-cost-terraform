@@ -1,0 +1,42 @@
+{
+    "failed_checks": [
+        {
+            "file": "/main.tf",
+            "findings": [
+                {
+                    "resource": "aws_cloudwatch_log_group.collector",
+                    "check_ids": [
+                        "CKV_AWS_158",
+                        "CKV_AWS_338"
+                    ]
+                },
+                {
+                    "resource": "aws_lambda_function.collector",
+                    "check_ids": [
+                        "CKV_AWS_116",
+                        "CKV_AWS_117",
+                        "CKV_AWS_173",
+                        "CKV_AWS_272",
+                        "CKV_AWS_50"
+                    ]
+                },
+                {
+                    "resource": "aws_s3_bucket.artifacts",
+                    "check_ids": [
+                        "CKV2_AWS_61",
+                        "CKV2_AWS_62",
+                        "CKV_AWS_144",
+                        "CKV_AWS_145",
+                        "CKV_AWS_18"
+                    ]
+                },
+                {
+                    "resource": "aws_scheduler_schedule.collector",
+                    "check_ids": [
+                        "CKV_AWS_297"
+                    ]
+                }
+            ]
+        }
+    ]
+}

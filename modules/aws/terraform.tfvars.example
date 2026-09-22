@@ -1,5 +1,4 @@
 expected_management_account_id = "123456789012"
-name_prefix                   = "cloud-cost-connector"
 artifact_version              = "1.0.0"
 jfrog_artifactory_url         = "https://company.jfrog.io/artifactory"
 jfrog_repository              = "mit-cloud-cost-agent"

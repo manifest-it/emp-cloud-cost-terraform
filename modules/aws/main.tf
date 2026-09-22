@@ -2,7 +2,7 @@ data "aws_caller_identity" "current" {}
 data "aws_partition" "current" {}
 
 locals {
-  resource_name   = var.name_prefix
+  resource_name   = "emp-aws-cloud-cost-agent"
   lambda_zip_path = "${path.module}/artifacts/bootstrap-${var.artifact_version}.zip"
   artifact_key    = "releases/${var.artifact_version}/bootstrap.zip"
   vpc_enabled     = length(var.vpc_subnet_ids) > 0 && length(var.vpc_security_group_ids) > 0
@@ -122,7 +122,7 @@ resource "aws_cloudwatch_log_group" "collector" {
 
 resource "aws_lambda_function" "collector" {
   function_name = local.resource_name
-  description   = "AWS cloud cost collector ${var.artifact_version}"
+  description   = "Empirik AWS cloud cost collector ${var.artifact_version}"
   role          = aws_iam_role.collector.arn
 
   s3_bucket         = aws_s3_object.collector.bucket

@@ -10,17 +10,6 @@ variable "expected_management_account_id" {
   }
 }
 
-variable "name_prefix" {
-  description = "Prefix used for connector resources."
-  type        = string
-  default     = "cloud-cost-connector"
-
-  validation {
-    condition     = can(regex("^[a-z0-9][a-z0-9-]{1,37}[a-z0-9]$", var.name_prefix))
-    error_message = "name_prefix must be 3-39 lowercase letters, digits, or hyphens and must start and end with a letter or digit."
-  }
-}
-
 variable "artifact_version" {
   description = "Immutable semantic version of the AWS connector artifact to download from JFrog."
   type        = string

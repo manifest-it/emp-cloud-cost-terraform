@@ -46,6 +46,16 @@ run "non_vpc_by_default" {
   command = plan
 
   assert {
+    condition     = aws_lambda_function.collector.function_name == "emp-aws-cloud-cost-agent"
+    error_message = "Lambda must use the fixed Empirik AWS cloud cost agent name."
+  }
+
+  assert {
+    condition     = aws_lambda_function.collector.description == "Empirik AWS cloud cost collector 0.3.0"
+    error_message = "Lambda description must include Empirik branding and the artifact version."
+  }
+
+  assert {
     condition     = length(aws_lambda_function.collector.vpc_config) == 0
     error_message = "Lambda must remain outside a VPC when no VPC inputs are supplied."
   }

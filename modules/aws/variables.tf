@@ -127,8 +127,8 @@ variable "min_baseline_usd" {
   default     = 0.5
 
   validation {
-    condition     = var.min_baseline_usd >= 0
-    error_message = "min_baseline_usd must not be negative."
+    condition     = var.min_baseline_usd > 0
+    error_message = "min_baseline_usd must be greater than zero."
   }
 }
 
@@ -185,6 +185,28 @@ variable "lambda_memory_mb" {
   validation {
     condition     = var.lambda_memory_mb >= 128 && var.lambda_memory_mb <= 10240
     error_message = "lambda_memory_mb must be from 128 through 10240."
+  }
+}
+
+variable "vpc_subnet_ids" {
+  description = "Existing customer subnet IDs for optional Lambda VPC attachment. Leave empty with vpc_security_group_ids for non-VPC deployment. Private subnets require outbound HTTPS through NAT or equivalent egress."
+  type        = list(string)
+  default     = []
+
+  validation {
+    condition     = alltrue([for id in var.vpc_subnet_ids : can(regex("^subnet-[0-9a-fA-F]+$", id))])
+    error_message = "Every vpc_subnet_ids value must be an AWS subnet ID."
+  }
+}
+
+variable "vpc_security_group_ids" {
+  description = "Existing customer security group IDs for optional Lambda VPC attachment. Leave empty with vpc_subnet_ids for non-VPC deployment. At least one group must allow outbound TCP 443."
+  type        = list(string)
+  default     = []
+
+  validation {
+    condition     = alltrue([for id in var.vpc_security_group_ids : can(regex("^sg-[0-9a-fA-F]+$", id))])
+    error_message = "Every vpc_security_group_ids value must be an AWS security group ID."
   }
 }
 

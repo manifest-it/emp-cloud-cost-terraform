@@ -25,6 +25,12 @@ module "manifest_cloud_cost_aws" {
   org_key         = "customer-org-key"
   x_api_key       = "<API_KEY_PLACEHOLDER>"
 
+  # Optional: attach Lambda to existing customer networking. Leave both lists
+  # empty for the default non-VPC deployment. These subnets need NAT or
+  # equivalent outbound HTTPS connectivity.
+  # vpc_subnet_ids         = ["subnet-0123456789abcdef0", "subnet-0fedcba9876543210"]
+  # vpc_security_group_ids = ["sg-0123456789abcdef0"]
+
   tags = {
     Application = "manifest-cloud-cost"
     ManagedBy   = "Terraform"

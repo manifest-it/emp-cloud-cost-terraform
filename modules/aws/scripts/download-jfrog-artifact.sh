@@ -23,7 +23,7 @@ fi
 
 : "${JFROG_ACCESS_TOKEN:?Set a short-lived, read-only JFROG_ACCESS_TOKEN before running Terraform}"
 
-for command_name in curl shasum unzip openssl; do
+for command_name in cosign curl shasum unzip openssl; do
   command -v "${command_name}" >/dev/null 2>&1 || {
     printf '%s is required\n' "${command_name}" >&2
     exit 1
@@ -32,6 +32,7 @@ done
 
 ARTIFACT_URL="${JFROG_ARTIFACTORY_URL}/${JFROG_REPOSITORY}/aws/${VERSION}/bootstrap.zip"
 CHECKSUM_URL="${ARTIFACT_URL}.sha256"
+BUNDLE_URL="${ARTIFACT_URL}.sigstore.json"
 OUTPUT_DIR="$(dirname "${OUTPUT_PATH}")"
 TEMP_DIR="$(mktemp -d)"
 trap 'rm -rf "${TEMP_DIR}"' EXIT
@@ -59,6 +60,10 @@ curl --config "${CURL_CONFIG}" --max-time 30 \
   --output "${TEMP_DIR}/bootstrap.zip.sha256" \
   "${CHECKSUM_URL}"
 
+curl --config "${CURL_CONFIG}" --max-time 30 \
+  --output "${TEMP_DIR}/bootstrap.zip.sigstore.json" \
+  "${BUNDLE_URL}"
+
 EXPECTED_SHA256="$(awk 'NR == 1 { print $1 }' "${TEMP_DIR}/bootstrap.zip.sha256")"
 if [[ ! "${EXPECTED_SHA256}" =~ ^[0-9a-fA-F]{64}$ ]]; then
   printf 'JFrog checksum file is invalid\n' >&2
@@ -70,6 +75,12 @@ if [[ "${ACTUAL_SHA256}" != "${EXPECTED_SHA256}" ]]; then
   printf 'JFrog artifact checksum verification failed\n' >&2
   exit 1
 fi
+
+cosign verify-blob \
+  --bundle "${TEMP_DIR}/bootstrap.zip.sigstore.json" \
+  --certificate-identity "https://github.com/manifest-it/mit-cloud-cost/.github/workflows/external-aws-release.yml@refs/heads/main" \
+  --certificate-oidc-issuer "https://token.actions.githubusercontent.com" \
+  "${TEMP_DIR}/bootstrap.zip" >/dev/null
 
 if [[ "$(unzip -Z1 "${TEMP_DIR}/bootstrap.zip")" != "bootstrap" ]]; then
   printf 'Lambda archive must contain exactly one file named bootstrap\n' >&2

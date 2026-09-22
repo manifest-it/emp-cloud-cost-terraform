@@ -5,6 +5,7 @@ locals {
   resource_name   = var.name_prefix
   lambda_zip_path = "${path.module}/artifacts/bootstrap-${var.artifact_version}.zip"
   artifact_key    = "releases/${var.artifact_version}/bootstrap.zip"
+  vpc_enabled     = length(var.vpc_subnet_ids) > 0 && length(var.vpc_security_group_ids) > 0
 }
 
 data "external" "collector_artifact" {
@@ -138,6 +139,15 @@ resource "aws_lambda_function" "collector" {
   reserved_concurrent_executions = 1
   tags                           = var.tags
 
+  dynamic "vpc_config" {
+    for_each = local.vpc_enabled ? [1] : []
+
+    content {
+      subnet_ids         = var.vpc_subnet_ids
+      security_group_ids = var.vpc_security_group_ids
+    }
+  }
+
   environment {
     variables = {
       MANAGEMENT_ACCOUNT_ID  = data.aws_caller_identity.current.account_id
@@ -156,9 +166,17 @@ resource "aws_lambda_function" "collector" {
     }
   }
 
-  depends_on = [aws_cloudwatch_log_group.collector]
+  depends_on = [
+    aws_cloudwatch_log_group.collector,
+    aws_iam_role_policy.collector,
+  ]
 
   lifecycle {
+    precondition {
+      condition     = (length(var.vpc_subnet_ids) == 0) == (length(var.vpc_security_group_ids) == 0)
+      error_message = "vpc_subnet_ids and vpc_security_group_ids must either both be empty or both contain values."
+    }
+
     precondition {
       condition     = var.expected_management_account_id == null || data.aws_caller_identity.current.account_id == var.expected_management_account_id
       error_message = "The active AWS account does not match expected_management_account_id."

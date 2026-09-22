@@ -33,6 +33,23 @@ data "aws_iam_policy_document" "collector" {
     ]
     resources = ["${aws_cloudwatch_log_group.collector.arn}:*"]
   }
+
+  dynamic "statement" {
+    for_each = local.vpc_enabled ? [1] : []
+
+    content {
+      sid    = "ManageVpcNetworkInterfaces"
+      effect = "Allow"
+      actions = [
+        "ec2:AssignPrivateIpAddresses",
+        "ec2:CreateNetworkInterface",
+        "ec2:DeleteNetworkInterface",
+        "ec2:DescribeNetworkInterfaces",
+        "ec2:UnassignPrivateIpAddresses",
+      ]
+      resources = ["*"]
+    }
+  }
 }
 
 resource "aws_iam_role_policy" "collector" {

@@ -1,0 +1,26 @@
+name: Conventional PR Title
+
+on:
+  pull_request:
+    types: [opened, edited, synchronize, reopened]
+
+permissions:
+  contents: read
+
+jobs:
+  validate-title:
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Validate Conventional Commit title
+        env:
+          PR_TITLE: ${{ github.event.pull_request.title }}
+        run: |
+          set -euo pipefail
+          pattern='^(build|chore|ci|docs|feat|fix|perf|refactor|revert|style|test)(\([a-z0-9][a-z0-9._/-]*\))?!?:[[:space:]].+'
+          if [[ ! "${PR_TITLE}" =~ ${pattern} ]]; then
+            printf 'PR title must follow Conventional Commits.\n' >&2
+            printf 'Examples: fix(aws): repair JFrog upload\n' >&2
+            printf '          feat(gcp): add billing collector\n' >&2
+            printf '          docs: explain deployment\n' >&2
+            exit 1
+          fi

@@ -19,12 +19,6 @@ state, or deployment resources.
 
 ## AWS usage
 
-Export the customer-scoped, read-only JFrog token before running Terraform:
-
-```bash
-export JFROG_ACCESS_TOKEN="<read-only-token>"
-```
-
 Pin both the Terraform repository tag and the immutable runtime artifact:
 
 ```hcl
@@ -39,12 +33,26 @@ module "manifest_cloud_cost_aws" {
   org_key         = "customer-org-key"
   x_api_key       = "<API_KEY_PLACEHOLDER>"
 
+  # Optional existing customer VPC attachment. Omit both for non-VPC mode.
+  # vpc_subnet_ids         = ["subnet-0123456789abcdef0"]
+  # vpc_security_group_ids = ["sg-0123456789abcdef0"]
+
   # See modules/aws/README.md for the remaining required inputs.
 }
 ```
 
 Git sources do not support Terraform's `version` argument. The `ref` pins the
 infrastructure module, while `artifact_version` pins the collector binary.
+The JFrog token is intentionally not a Terraform input. Run the deployment with
+the token in the caller environment:
+
+```bash
+export JFROG_ACCESS_TOKEN="<customer-scoped-read-only-token>"
+terraform init
+terraform plan -out=connector.tfplan
+terraform apply connector.tfplan
+unset JFROG_ACCESS_TOKEN
+```
 
 ## Releases
 
@@ -64,10 +72,12 @@ are not published immediately on every push.
 
 - JFrog credentials are read only from `JFROG_ACCESS_TOKEN`; they are never
   Terraform variables and therefore are not written to plans or state.
-- Terraform verifies the runtime SHA-256 before copying it into customer-owned
-  cloud storage.
+- Terraform verifies the runtime SHA-256 and keyless Sigstore bundle before
+  copying it into customer-owned cloud storage.
 - The deployed runtime does not need JFrog access.
 - Every provider module uses least-privilege cloud IAM and outbound HTTPS.
+- AWS VPC attachment is optional and uses only customer-supplied subnets and
+  security groups; the module does not create networking resources.
 - `x_api_key` is sensitive but is stored in Terraform state because Lambda
   environment variables are Terraform-managed. Protect the state accordingly.
 - Generated state, plans, `.tfvars`, and downloaded artifacts are ignored.

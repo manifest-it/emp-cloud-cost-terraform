@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.2.0](https://github.com/manifest-it/emp-cloud-cost-terraform/compare/aws-terraform-v0.1.0...aws-terraform-v0.2.0) (2026-09-22)
+
+
+### Features
+
+* **aws:** support existing VPC attachment ([fced728](https://github.com/manifest-it/emp-cloud-cost-terraform/commit/fced728267832d6eada428c45ff3f30b82bc79f1))
+
 ## 0.1.0 (2026-09-22)
 
 

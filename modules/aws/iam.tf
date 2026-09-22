@@ -25,24 +25,6 @@ data "aws_iam_policy_document" "collector" {
   }
 
   statement {
-    sid       = "ReadVictoriaMetricsToken"
-    effect    = "Allow"
-    actions   = ["secretsmanager:GetSecretValue"]
-    resources = [var.victoriametrics_token_secret_arn]
-  }
-
-  dynamic "statement" {
-    for_each = var.victoriametrics_secret_kms_key_arn == null ? [] : [var.victoriametrics_secret_kms_key_arn]
-
-    content {
-      sid       = "DecryptVictoriaMetricsToken"
-      effect    = "Allow"
-      actions   = ["kms:Decrypt"]
-      resources = [statement.value]
-    }
-  }
-
-  statement {
     sid    = "WriteFunctionLogs"
     effect = "Allow"
     actions = [

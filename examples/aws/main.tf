@@ -21,8 +21,9 @@ module "manifest_cloud_cost_aws" {
   jfrog_artifactory_url          = "https://manifestit.jfrog.io/artifactory"
   jfrog_repository               = "mit-cloud-cost-agent"
 
-  victoriametrics_import_url       = "https://customer.metrics.manifestit.io/api/v1/import/prometheus"
-  victoriametrics_token_secret_arn = "arn:aws:secretsmanager:us-east-1:123456789012:secret:manifest-cloud-cost-EXAMPLE"
+  empirik_api_url = "https://dev.api.manifestit.tech/api/v1/cloud-cost"
+  org_key         = "customer-org-key"
+  x_api_key       = "<API_KEY_PLACEHOLDER>"
 
   tags = {
     Application = "manifest-cloud-cost"

@@ -30,10 +30,16 @@ terraform apply
 ```
 
 The JFrog token is used only by the local download helper during planning and
-application. It is not stored in Terraform state or deployed to Lambda.
+application. It is not stored in Terraform state or deployed to Lambda. The
+collector authenticates to the EMP API with the UI-provided `org_key` and
+`x_api_key`. The API key is marked sensitive, but Terraform stores it in state
+as part of the Lambda environment. Store Terraform state securely.
 
 ## Versioning
 
-Pin the repository tag in the module `source` and set `artifact_version` to an
-immutable collector version. Upgrade them independently and review the plan
-before applying.
+Pin an `aws-terraform-vX.Y.Z` repository tag in the module `source` and set
+`artifact_version` to an immutable collector version. Release Please maintains
+provider-specific release PRs from Conventional Commits under `modules/aws`.
+Merging the AWS release PR creates the GitHub release and tag. Upgrade the
+Terraform module and collector runtime independently and review the plan before
+applying.

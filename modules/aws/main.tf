@@ -140,18 +140,19 @@ resource "aws_lambda_function" "collector" {
 
   environment {
     variables = {
-      MANAGEMENT_ACCOUNT_ID            = data.aws_caller_identity.current.account_id
-      CONNECTOR_VERSION                = var.artifact_version
-      COST_EXPLORER_REGION             = "us-east-1"
-      VICTORIAMETRICS_IMPORT_URL       = var.victoriametrics_import_url
-      VICTORIAMETRICS_TOKEN_SECRET_ARN = var.victoriametrics_token_secret_arn
-      TIMEZONE                         = var.timezone
-      EVALUATION_LAG_DAYS              = tostring(var.evaluation_lag_days)
-      ANOMALY_THRESHOLD_PCT            = tostring(var.anomaly_threshold_pct)
-      MIN_ABSOLUTE_DELTA_USD           = tostring(var.min_absolute_delta_usd)
-      MIN_BASELINE_USD                 = tostring(var.min_baseline_usd)
-      ACCOUNT_ALLOWLIST                = join(",", var.account_allowlist)
-      ACCOUNT_DENYLIST                 = join(",", var.account_denylist)
+      MANAGEMENT_ACCOUNT_ID  = data.aws_caller_identity.current.account_id
+      CONNECTOR_VERSION      = var.artifact_version
+      COST_EXPLORER_REGION   = "us-east-1"
+      EMPIRIK_API_URL        = var.empirik_api_url
+      ORG_KEY                = var.org_key
+      X_API_KEY              = var.x_api_key
+      TIMEZONE               = var.timezone
+      EVALUATION_LAG_DAYS    = tostring(var.evaluation_lag_days)
+      ANOMALY_THRESHOLD_PCT  = tostring(var.anomaly_threshold_pct)
+      MIN_ABSOLUTE_DELTA_USD = tostring(var.min_absolute_delta_usd)
+      MIN_BASELINE_USD       = tostring(var.min_baseline_usd)
+      ACCOUNT_ALLOWLIST      = join(",", var.account_allowlist)
+      ACCOUNT_DENYLIST       = join(",", var.account_denylist)
     }
   }
 

@@ -4,11 +4,9 @@ artifact_version              = "1.0.0"
 jfrog_artifactory_url         = "https://company.jfrog.io/artifactory"
 jfrog_repository              = "mit-cloud-cost-agent"
 
-victoriametrics_import_url       = "https://vendor-placeholder.metrics.manifestit.io/customer-path/api/v1/import/prometheus"
-victoriametrics_token_secret_arn = "arn:aws:secretsmanager:us-east-1:123456789012:secret:cloud-cost-victoriametrics-token-EXAMPLE"
-
-# Set only when the existing secret uses a customer-managed KMS key.
-# victoriametrics_secret_kms_key_arn = "arn:aws:kms:us-east-1:123456789012:key/00000000-0000-0000-0000-000000000000"
+empirik_api_url = "https://dev.api.manifestit.tech/api/v1/cloud-cost"
+org_key         = "customer-org-key"
+x_api_key       = "<API_KEY_PLACEHOLDER>"
 
 timezone               = "UTC"
 evaluation_lag_days    = 2

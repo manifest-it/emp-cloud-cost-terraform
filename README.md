@@ -29,11 +29,15 @@ Pin both the Terraform repository tag and the immutable runtime artifact:
 
 ```hcl
 module "manifest_cloud_cost_aws" {
-  source = "git::https://github.com/manifest-it/emp-cloud-cost-terraform.git//modules/aws?ref=v0.1.0"
+  source = "git::https://github.com/manifest-it/emp-cloud-cost-terraform.git//modules/aws?ref=aws-terraform-v0.1.0"
 
   artifact_version      = "0.2.2"
   jfrog_artifactory_url = "https://manifestit.jfrog.io/artifactory"
   jfrog_repository      = "mit-cloud-cost-agent"
+
+  empirik_api_url = "https://dev.api.manifestit.tech/api/v1/cloud-cost"
+  org_key         = "customer-org-key"
+  x_api_key       = "<API_KEY_PLACEHOLDER>"
 
   # See modules/aws/README.md for the remaining required inputs.
 }
@@ -41,6 +45,20 @@ module "manifest_cloud_cost_aws" {
 
 Git sources do not support Terraform's `version` argument. The `ref` pins the
 infrastructure module, while `artifact_version` pins the collector binary.
+
+## Releases
+
+Release Please maintains an independent release PR for each provider module.
+Use Conventional Commits for changes under `modules/<provider>`:
+
+- `fix(aws): ...` creates an AWS patch release.
+- `feat(gcp): ...` creates a GCP minor release.
+- `feat(azure)!: ...` creates an Azure major release.
+
+Merging a provider release PR creates its GitHub release and immutable tag:
+`aws-terraform-vX.Y.Z`, `gcp-terraform-vX.Y.Z`, or
+`azure-terraform-vX.Y.Z`. Commits accumulate in the relevant release PR; they
+are not published immediately on every push.
 
 ## Security model
 
@@ -50,6 +68,8 @@ infrastructure module, while `artifact_version` pins the collector binary.
   cloud storage.
 - The deployed runtime does not need JFrog access.
 - Every provider module uses least-privilege cloud IAM and outbound HTTPS.
+- `x_api_key` is sensitive but is stored in Terraform state because Lambda
+  environment variables are Terraform-managed. Protect the state accordingly.
 - Generated state, plans, `.tfvars`, and downloaded artifacts are ignored.
 
 The module repository contains no collector source, binaries, credentials,

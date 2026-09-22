@@ -51,35 +51,34 @@ variable "jfrog_repository" {
   }
 }
 
-variable "victoriametrics_import_url" {
-  description = "Full HTTPS VictoriaMetrics /api/v1/import/prometheus endpoint."
+variable "empirik_api_url" {
+  description = "Full HTTPS EMP API v1 endpoint issued by Manifest."
   type        = string
 
   validation {
-    condition     = can(regex("^https://([A-Za-z0-9-]+\\.)*(manifestit\\.io|manifestit\\.tech|empirik\\.io|empirik\\.tech)(:[0-9]+)?/", var.victoriametrics_import_url)) && endswith(trimsuffix(var.victoriametrics_import_url, "/"), "/api/v1/import/prometheus") && !strcontains(trimprefix(var.victoriametrics_import_url, "https://"), "@")
-    error_message = "victoriametrics_import_url must be an HTTPS /api/v1/import/prometheus URL on manifestit.io, manifestit.tech, empirik.io, empirik.tech, or one of their subdomains."
+    condition     = can(regex("^https://([A-Za-z0-9-]+\\.)*(manifestit\\.io|manifestit\\.tech|empirik\\.io|empirik\\.tech)(:[0-9]+)?/api/v1(/.*)?$", var.empirik_api_url)) && !strcontains(trimprefix(var.empirik_api_url, "https://"), "@")
+    error_message = "empirik_api_url must be an HTTPS /api/v1 endpoint on manifestit.io, manifestit.tech, empirik.io, empirik.tech, or one of their subdomains."
   }
 }
 
-variable "victoriametrics_token_secret_arn" {
-  description = "ARN of an existing Secrets Manager secret whose SecretString is the VictoriaMetrics bearer token."
+variable "org_key" {
+  description = "EMP organization key sent with each ingestion request."
   type        = string
 
   validation {
-    condition     = can(regex("^arn:[^:]+:secretsmanager:[^:]+:[0-9]{12}:secret:.+$", var.victoriametrics_token_secret_arn))
-    error_message = "victoriametrics_token_secret_arn must be a Secrets Manager secret ARN."
+    condition     = length(trimspace(var.org_key)) > 0
+    error_message = "org_key must not be empty."
   }
 }
 
-variable "victoriametrics_secret_kms_key_arn" {
-  description = "Optional customer-managed KMS key ARN used by the existing VictoriaMetrics token secret."
+variable "x_api_key" {
+  description = "EMP X API key supplied by the onboarding application."
   type        = string
-  default     = null
-  nullable    = true
+  sensitive   = true
 
   validation {
-    condition     = var.victoriametrics_secret_kms_key_arn == null || can(regex("^arn:[^:]+:kms:[^:]+:[0-9]{12}:key/.+$", var.victoriametrics_secret_kms_key_arn))
-    error_message = "victoriametrics_secret_kms_key_arn must be a KMS key ARN."
+    condition     = length(trimspace(var.x_api_key)) > 0
+    error_message = "x_api_key must not be empty."
   }
 }
 

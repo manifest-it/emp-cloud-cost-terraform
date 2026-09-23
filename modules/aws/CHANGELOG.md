@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.1.0](https://github.com/manifest-it/emp-cloud-cost-terraform/compare/aws-terraform-v1.0.0...aws-terraform-v1.1.0) (2026-09-23)
+
+
+### Features
+
+* **aws:** expose rolling 15-day backfill ([8cdce03](https://github.com/manifest-it/emp-cloud-cost-terraform/commit/8cdce037e5b0be169ad5196e240d7439d1d2d1b1))
+
 ## [1.0.0](https://github.com/manifest-it/emp-cloud-cost-terraform/compare/aws-terraform-v0.2.0...aws-terraform-v1.0.0) (2026-09-22)
 
 

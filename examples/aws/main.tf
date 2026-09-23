@@ -25,6 +25,9 @@ module "manifest_cloud_cost_aws" {
   org_key         = "customer-org-key"
   x_api_key       = "<API_KEY_PLACEHOLDER>"
 
+  # Optional: refresh the 15 historical days before the normal N-2 day.
+  backfill_last_15_days = false
+
   # Optional: attach Lambda to existing customer networking. Leave both lists
   # empty for the default non-VPC deployment. These subnets need NAT or
   # equivalent outbound HTTPS connectivity.

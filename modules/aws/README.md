@@ -36,6 +36,22 @@ collector authenticates to the EMP API with the UI-provided `org_key` and
 `x_api_key`. The API key is marked sensitive, but Terraform stores it in state
 as part of the Lambda environment. Store Terraform state securely.
 
+## Optional 15-day backfill
+
+Set `backfill_last_15_days = true` to refresh the 15 historical billing days
+before the normal evaluation date. It is `false` by default. The normal
+scheduled run writes N-2; historical processing covers N-17 through N-3 so the
+two paths do not overlap.
+
+The collector queries Cost Explorer once for the range and seven baseline days,
+then sends every available billing date in that 15-day window to EMP in one
+batched request. Dates Cost Explorer omits because no billing data exists are
+not synthesized as zero-cost samples.
+Backfilled samples omit live-run duration and staleness metrics. No checkpoint,
+runtime S3 access, self-invocation, or additional AWS SDK client is used. With
+no durable completion state, leaving the option enabled refreshes the rolling
+15-day window on every scheduled invocation.
+
 ## Optional VPC attachment
 
 By default, the Lambda is not attached to a VPC. To use an existing customer

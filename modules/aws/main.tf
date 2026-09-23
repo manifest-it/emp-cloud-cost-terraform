@@ -163,6 +163,7 @@ resource "aws_lambda_function" "collector" {
       MIN_BASELINE_USD       = tostring(var.min_baseline_usd)
       ACCOUNT_ALLOWLIST      = join(",", var.account_allowlist)
       ACCOUNT_DENYLIST       = join(",", var.account_denylist)
+      BACKFILL_LAST_15_DAYS  = tostring(var.backfill_last_15_days)
     }
   }
 

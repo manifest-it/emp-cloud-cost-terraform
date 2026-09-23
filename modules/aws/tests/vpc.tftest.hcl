@@ -59,6 +59,24 @@ run "non_vpc_by_default" {
     condition     = length(aws_lambda_function.collector.vpc_config) == 0
     error_message = "Lambda must remain outside a VPC when no VPC inputs are supplied."
   }
+
+  assert {
+    condition     = aws_lambda_function.collector.environment[0].variables.BACKFILL_LAST_15_DAYS == "false"
+    error_message = "Last-15-day backfill must be disabled by default."
+  }
+}
+
+run "enables_last_15_day_backfill" {
+  command = plan
+
+  variables {
+    backfill_last_15_days = true
+  }
+
+  assert {
+    condition     = aws_lambda_function.collector.environment[0].variables.BACKFILL_LAST_15_DAYS == "true"
+    error_message = "Lambda must receive the enabled last-15-day backfill setting."
+  }
 }
 
 run "uses_existing_vpc" {

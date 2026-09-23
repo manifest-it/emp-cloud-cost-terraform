@@ -20,6 +20,8 @@ log_retention_days  = 30
 account_allowlist = []
 account_denylist  = []
 
+backfill_last_15_days = false
+
 tags = {
   Application = "cloud-cost-connector"
   ManagedBy   = "Terraform"

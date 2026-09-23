@@ -143,6 +143,12 @@ variable "account_denylist" {
   }
 }
 
+variable "backfill_last_15_days" {
+  description = "When true, refresh the 15 historical days before the normal N-2 evaluation date on each invocation."
+  type        = bool
+  default     = false
+}
+
 variable "schedule_expression" {
   description = "EventBridge Scheduler expression. Default runs daily at 10:00 in schedule_timezone."
   type        = string

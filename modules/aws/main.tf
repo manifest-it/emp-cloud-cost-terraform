@@ -155,7 +155,7 @@ resource "aws_lambda_function" "collector" {
       COST_EXPLORER_REGION   = "us-east-1"
       EMPIRIK_API_URL        = var.empirik_api_url
       ORG_KEY                = var.org_key
-      X_API_KEY              = var.x_api_key
+      MIT_API_KEY            = var.mit_api_key
       TIMEZONE               = var.timezone
       EVALUATION_LAG_DAYS    = tostring(var.evaluation_lag_days)
       ANOMALY_THRESHOLD_PCT  = tostring(var.anomaly_threshold_pct)

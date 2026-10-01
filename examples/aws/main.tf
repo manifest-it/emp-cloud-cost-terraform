@@ -13,17 +13,23 @@ provider "aws" {
   region = "us-east-1"
 }
 
+variable "mit_api_key" {
+  description = "One-time API key returned as mitApiKey from Cost Source Create or Update."
+  type        = string
+  sensitive   = true
+}
+
 module "manifest_cloud_cost_aws" {
   source = "../../modules/aws"
 
   expected_management_account_id = "123456789012"
-  artifact_version               = "0.2.2"
+  artifact_version               = "0.6.0"
   jfrog_artifactory_url          = "https://manifestit.jfrog.io/artifactory"
   jfrog_repository               = "mit-cloud-cost-agent"
 
-  empirik_api_url = "https://dev.api.manifestit.tech/api/v1/cloud-cost"
+  empirik_api_url = "https://dev.api.manifestit.tech/api/v1/client/cost"
   org_key         = "customer-org-key"
-  x_api_key       = "<API_KEY_PLACEHOLDER>"
+  mit_api_key     = var.mit_api_key
 
   # Optional: refresh the 15 historical days before the normal N-2 day.
   backfill_last_15_days = false

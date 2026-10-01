@@ -37,9 +37,9 @@ variables {
   artifact_version      = "0.3.0"
   jfrog_artifactory_url = "https://example.jfrog.io/artifactory"
   jfrog_repository      = "cloud-cost-connectors"
-  empirik_api_url       = "https://api.manifestit.tech/api/v1/cloud-cost"
+  empirik_api_url       = "https://api.manifestit.tech/api/v1/client/cost"
   org_key               = "test-org"
-  x_api_key             = "<API_KEY_PLACEHOLDER>"
+  mit_api_key           = "<API_KEY_PLACEHOLDER>"
 }
 
 run "non_vpc_by_default" {
@@ -64,6 +64,16 @@ run "non_vpc_by_default" {
     condition     = aws_lambda_function.collector.environment[0].variables.BACKFILL_LAST_15_DAYS == "false"
     error_message = "Last-15-day backfill must be disabled by default."
   }
+
+  assert {
+    condition     = nonsensitive(aws_lambda_function.collector.environment[0].variables.MIT_API_KEY) == "<API_KEY_PLACEHOLDER>"
+    error_message = "Lambda must receive the supplied MIT API key."
+  }
+
+  assert {
+    condition     = !contains(nonsensitive(keys(aws_lambda_function.collector.environment[0].variables)), "X_API_KEY")
+    error_message = "Lambda must not receive the retired X_API_KEY variable."
+  }
 }
 
 run "enables_last_15_day_backfill" {
@@ -77,6 +87,26 @@ run "enables_last_15_day_backfill" {
     condition     = aws_lambda_function.collector.environment[0].variables.BACKFILL_LAST_15_DAYS == "true"
     error_message = "Lambda must receive the enabled last-15-day backfill setting."
   }
+}
+
+run "rejects_retired_ingestion_path" {
+  command = plan
+
+  variables {
+    empirik_api_url = "https://api.manifestit.tech/api/v1/cloud-cost"
+  }
+
+  expect_failures = [var.empirik_api_url]
+}
+
+run "rejects_empty_mit_api_key" {
+  command = plan
+
+  variables {
+    mit_api_key = ""
+  }
+
+  expect_failures = [var.mit_api_key]
 }
 
 run "uses_existing_vpc" {

@@ -22,16 +22,22 @@ state, or deployment resources.
 Pin both the Terraform repository tag and the immutable runtime artifact:
 
 ```hcl
-module "manifest_cloud_cost_aws" {
-  source = "git::https://github.com/manifest-it/emp-cloud-cost-terraform.git//modules/aws?ref=aws-terraform-v0.1.0"
+variable "mit_api_key" {
+  description = "One-time API key returned as mitApiKey from Cost Source Create or Update."
+  type        = string
+  sensitive   = true
+}
 
-  artifact_version      = "0.2.2"
+module "manifest_cloud_cost_aws" {
+  source = "git::https://github.com/manifest-it/emp-cloud-cost-terraform.git//modules/aws?ref=aws-terraform-v<module-version>"
+
+  artifact_version      = "0.6.0"
   jfrog_artifactory_url = "https://manifestit.jfrog.io/artifactory"
   jfrog_repository      = "mit-cloud-cost-agent"
 
-  empirik_api_url = "https://dev.api.manifestit.tech/api/v1/cloud-cost"
+  empirik_api_url = "https://dev.api.manifestit.tech/api/v1/client/cost"
   org_key         = "customer-org-key"
-  x_api_key       = "<API_KEY_PLACEHOLDER>"
+  mit_api_key     = var.mit_api_key
 
   # Optional existing customer VPC attachment. Omit both for non-VPC mode.
   # vpc_subnet_ids         = ["subnet-0123456789abcdef0"]
@@ -78,7 +84,7 @@ are not published immediately on every push.
 - Every provider module uses least-privilege cloud IAM and outbound HTTPS.
 - AWS VPC attachment is optional and uses only customer-supplied subnets and
   security groups; the module does not create networking resources.
-- `x_api_key` is sensitive but is stored in Terraform state because Lambda
+- `mit_api_key` is sensitive but is stored in Terraform state because Lambda
   environment variables are Terraform-managed. Protect the state accordingly.
 - Generated state, plans, `.tfvars`, and downloaded artifacts are ignored.
 

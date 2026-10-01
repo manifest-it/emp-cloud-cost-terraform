@@ -41,12 +41,12 @@ variable "jfrog_repository" {
 }
 
 variable "empirik_api_url" {
-  description = "Full HTTPS EMP API v1 endpoint issued by Manifest."
+  description = "Full HTTPS MIT cost-ingestion endpoint issued by Manifest."
   type        = string
 
   validation {
-    condition     = can(regex("^https://([A-Za-z0-9-]+\\.)*(manifestit\\.io|manifestit\\.tech|empirik\\.io|empirik\\.tech)(:[0-9]+)?/api/v1(/.*)?$", var.empirik_api_url)) && !strcontains(trimprefix(var.empirik_api_url, "https://"), "@")
-    error_message = "empirik_api_url must be an HTTPS /api/v1 endpoint on manifestit.io, manifestit.tech, empirik.io, empirik.tech, or one of their subdomains."
+    condition     = can(regex("^https://([A-Za-z0-9-]+\\.)*(manifestit\\.io|manifestit\\.tech|empirik\\.io|empirik\\.tech)(:[0-9]+)?/api/v1/client/cost/?$", var.empirik_api_url)) && !strcontains(trimprefix(var.empirik_api_url, "https://"), "@")
+    error_message = "empirik_api_url must be the HTTPS /api/v1/client/cost endpoint on manifestit.io, manifestit.tech, empirik.io, empirik.tech, or one of their subdomains."
   }
 }
 
@@ -60,14 +60,14 @@ variable "org_key" {
   }
 }
 
-variable "x_api_key" {
-  description = "EMP X API key supplied by the onboarding application."
+variable "mit_api_key" {
+  description = "One-time MIT API key returned as mitApiKey by Cost Source Create or Update."
   type        = string
   sensitive   = true
 
   validation {
-    condition     = length(trimspace(var.x_api_key)) > 0
-    error_message = "x_api_key must not be empty."
+    condition     = length(trimspace(var.mit_api_key)) > 0
+    error_message = "mit_api_key must not be empty."
   }
 }
 

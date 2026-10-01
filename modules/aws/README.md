@@ -33,8 +33,9 @@ terraform apply
 The JFrog token is used only by the local download helper during planning and
 application. It is not stored in Terraform state or deployed to Lambda. The
 collector authenticates to the EMP API with the UI-provided `org_key` and
-`x_api_key`. The API key is marked sensitive, but Terraform stores it in state
-as part of the Lambda environment. Store Terraform state securely.
+`mit_api_key`, returned as `mitApiKey` by Cost Source Create or Update. The API
+key is marked sensitive, but Terraform stores it in state as part of the Lambda
+environment. Store Terraform state securely.
 
 ## Optional 15-day backfill
 

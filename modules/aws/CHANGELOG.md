@@ -1,5 +1,16 @@
 # Changelog
 
+## [2.0.0](https://github.com/manifest-it/emp-cloud-cost-terraform/compare/aws-terraform-v1.1.0...aws-terraform-v2.0.0) (2026-10-01)
+
+
+### ⚠ BREAKING CHANGES
+
+* **aws:** replace x_api_key with mit_api_key and require the /api/v1/client/cost ingestion endpoint.
+
+### Features
+
+* **aws:** support MIT API key ingestion ([7c026cf](https://github.com/manifest-it/emp-cloud-cost-terraform/commit/7c026cfd9f97d20f1b38b475ae91d820ab809d99))
+
 ## [1.1.0](https://github.com/manifest-it/emp-cloud-cost-terraform/compare/aws-terraform-v1.0.0...aws-terraform-v1.1.0) (2026-09-23)
 
 

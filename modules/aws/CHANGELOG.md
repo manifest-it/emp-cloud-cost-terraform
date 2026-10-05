@@ -1,5 +1,13 @@
 # Changelog
 
+## [2.1.0](https://github.com/manifest-it/emp-cloud-cost-terraform/compare/aws-terraform-v2.0.1...aws-terraform-v2.1.0) (2026-10-05)
+
+
+### Features
+
+* **aws:** pass Cost Source Configuration ID to collector ([560d74a](https://github.com/manifest-it/emp-cloud-cost-terraform/commit/560d74a91b482c293c76eb39c51b0b59b8790a58))
+* **aws:** pass Cost Source Configuration ID to collector ([0396b8b](https://github.com/manifest-it/emp-cloud-cost-terraform/commit/0396b8b2bdb5b8b65cb8310f27f4d012bfe1526b))
+
 ## [2.0.1](https://github.com/manifest-it/emp-cloud-cost-terraform/compare/aws-terraform-v2.0.0...aws-terraform-v2.0.1) (2026-10-05)
 
 

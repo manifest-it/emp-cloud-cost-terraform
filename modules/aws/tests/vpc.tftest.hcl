@@ -37,7 +37,7 @@ variables {
   artifact_version      = "0.3.0"
   jfrog_artifactory_url = "https://example.jfrog.io/artifactory"
   jfrog_repository      = "cloud-cost-connectors"
-  empirik_api_url       = "https://api.manifestit.tech/api/v1/client/cost"
+  empirik_api_url       = "https://api.manifestit.tech/client/cost"
   org_key               = "test-org"
   mit_api_key           = "<API_KEY_PLACEHOLDER>"
 }
@@ -94,6 +94,16 @@ run "rejects_retired_ingestion_path" {
 
   variables {
     empirik_api_url = "https://api.manifestit.tech/api/v1/cloud-cost"
+  }
+
+  expect_failures = [var.empirik_api_url]
+}
+
+run "rejects_obsolete_versioned_ingestion_path" {
+  command = plan
+
+  variables {
+    empirik_api_url = "https://api.manifestit.tech/api/v1/client/cost"
   }
 
   expect_failures = [var.empirik_api_url]

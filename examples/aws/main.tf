@@ -27,7 +27,7 @@ module "manifest_cloud_cost_aws" {
   jfrog_artifactory_url          = "https://manifestit.jfrog.io/artifactory"
   jfrog_repository               = "mit-cloud-cost-agent"
 
-  empirik_api_url = "https://dev.api.manifestit.tech/api/v1/client/cost"
+  empirik_api_url = "https://dev.api.manifestit.tech/client/cost"
   org_key         = "customer-org-key"
   mit_api_key     = var.mit_api_key
 

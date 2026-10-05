@@ -45,8 +45,8 @@ variable "empirik_api_url" {
   type        = string
 
   validation {
-    condition     = can(regex("^https://([A-Za-z0-9-]+\\.)*(manifestit\\.io|manifestit\\.tech|empirik\\.io|empirik\\.tech)(:[0-9]+)?/api/v1/client/cost/?$", var.empirik_api_url)) && !strcontains(trimprefix(var.empirik_api_url, "https://"), "@")
-    error_message = "empirik_api_url must be the HTTPS /api/v1/client/cost endpoint on manifestit.io, manifestit.tech, empirik.io, empirik.tech, or one of their subdomains."
+    condition     = can(regex("^https://([A-Za-z0-9-]+\\.)*(manifestit\\.io|manifestit\\.tech|empirik\\.io|empirik\\.tech)(:[0-9]+)?/client/cost/?$", var.empirik_api_url)) && !strcontains(trimprefix(var.empirik_api_url, "https://"), "@")
+    error_message = "empirik_api_url must be the HTTPS /client/cost endpoint on manifestit.io, manifestit.tech, empirik.io, empirik.tech, or one of their subdomains."
   }
 }
 

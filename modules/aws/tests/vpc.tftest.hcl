@@ -40,6 +40,7 @@ variables {
   empirik_api_url       = "https://api.manifestit.tech/client/cost"
   org_key               = "test-org"
   mit_api_key           = "<API_KEY_PLACEHOLDER>"
+  cost_source_id        = 42
 }
 
 run "non_vpc_by_default" {
@@ -68,6 +69,11 @@ run "non_vpc_by_default" {
   assert {
     condition     = nonsensitive(aws_lambda_function.collector.environment[0].variables.MIT_API_KEY) == "<API_KEY_PLACEHOLDER>"
     error_message = "Lambda must receive the supplied MIT API key."
+  }
+
+  assert {
+    condition     = aws_lambda_function.collector.environment[0].variables.COST_SOURCE_ID == "42"
+    error_message = "Lambda must receive the supplied Cost Source Configuration ID."
   }
 
   assert {

@@ -45,6 +45,11 @@ variable "mit_api_key" {
   sensitive   = true
 }
 
+variable "cost_source_id" {
+  description = "ID returned by Cost Source Configuration create or update."
+  type        = number
+}
+
 module "manifest_cloud_cost_aws" {
   source = "git::https://github.com/manifest-it/emp-cloud-cost-terraform.git//modules/aws?ref=aws-terraform-v<module-version>"
 
@@ -55,6 +60,7 @@ module "manifest_cloud_cost_aws" {
   empirik_api_url = "https://dev.api.manifestit.tech/client/cost"
   org_key         = "customer-org-key"
   mit_api_key     = var.mit_api_key
+  cost_source_id  = var.cost_source_id
 
   # Optional existing customer VPC attachment. Omit both for non-VPC mode.
   # vpc_subnet_ids         = ["subnet-0123456789abcdef0"]

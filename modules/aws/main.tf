@@ -156,6 +156,7 @@ resource "aws_lambda_function" "collector" {
       EMPIRIK_API_URL        = var.empirik_api_url
       ORG_KEY                = var.org_key
       MIT_API_KEY            = var.mit_api_key
+      COST_SOURCE_ID         = tostring(var.cost_source_id)
       TIMEZONE               = var.timezone
       EVALUATION_LAG_DAYS    = tostring(var.evaluation_lag_days)
       ANOMALY_THRESHOLD_PCT  = tostring(var.anomaly_threshold_pct)

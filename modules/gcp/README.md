@@ -2,9 +2,9 @@
 
 This module imports an immutable, signed GCP collector image from JFrog into
 customer-owned Artifact Registry and deploys it as a scheduled Cloud Run Job.
-The collector reads an existing standard Cloud Billing BigQuery export and
-sends cost metrics outbound to the configured EMP API. It exposes no inbound
-application endpoint.
+It creates the BigQuery dataset used by the standard Cloud Billing export. The
+collector reads the Google-created export table and sends cost metrics outbound
+to the configured EMP API. It exposes no inbound application endpoint.
 
 ## Architecture
 
@@ -12,7 +12,7 @@ application endpoint.
 Cloud Scheduler
   -> OAuth POST to Cloud Run Jobs :run API
   -> Cloud Run Job (one task, dedicated runtime identity)
-  -> existing BigQuery billing export
+  -> Terraform-managed BigQuery billing-export dataset
   -> EMP API /client/cost over HTTPS
 
 Terraform workstation
@@ -29,10 +29,11 @@ identity receives `roles/run.invoker` on only the connector job.
 
 ## Resources and permissions
 
-The module creates an immutable Artifact Registry repository, Secret Manager
-secret, Cloud Run Job, Cloud Scheduler job, two service accounts, and scoped IAM
-bindings. It can also enable the required APIs. It does not create projects,
-the billing export, BigQuery datasets/tables, networking, or a public endpoint.
+The module creates a BigQuery billing-export dataset, immutable Artifact
+Registry repository, Secret Manager secret, Cloud Run Job, Cloud Scheduler job,
+two service accounts, and scoped IAM bindings. It can also enable the required
+APIs. It does not create projects, networking, or a public endpoint. Google
+creates and populates the billing table after export enrollment.
 
 The Terraform identity must manage those resources and IAM bindings, attach
 service accounts, enable APIs when requested, and upload the verified image.
@@ -45,7 +46,8 @@ The runtime receives `roles/bigquery.dataViewer`, `roles/bigquery.jobUser`,
 
 - Terraform 1.6 or newer
 - Google credentials with the deployer permissions above
-- An existing standard Cloud Billing export in BigQuery
+- Billing Account Costs Manager or Billing Account Administrator access for the
+  one-time standard usage export enrollment
 - A Google provider configured by the calling root module
 - `cosign`, `crane`, `curl`, `gcloud`, `jq`, `shasum`, and `tar`
 - A short-lived JFrog token with read access to
@@ -73,8 +75,10 @@ module "manifest_cloud_cost_gcp" {
   billing_export_project_id = "customer-billing-export"
   bigquery_query_project_id = "customer-connector-project"
   bigquery_dataset          = "billing_export"
-  bigquery_table            = "gcp_billing_export_v1_XXXXXX_XXXXXX_XXXXXX"
   billing_account_id        = "XXXXXX-XXXXXX-XXXXXX"
+
+  create_billing_export_dataset   = true
+  billing_export_dataset_location = "US"
 
   artifact_version      = "1.0.0"
   jfrog_artifactory_url = "https://manifestit.jfrog.io/artifactory"
@@ -98,17 +102,36 @@ terraform apply connector.tfplan
 unset JFROG_ACCESS_TOKEN
 ```
 
+## Required billing export enrollment
+
+Google does not provide a public API, `gcloud` command, or Google Terraform
+provider resource for standard usage cost export enrollment. After the first
+apply, a billing administrator must complete this one-time Google Cloud console
+step:
+
+1. Open `terraform output -raw billing_export_setup_url`.
+2. Select the configured billing account.
+3. Enable **Standard usage cost** export.
+4. Select the project and dataset shown by
+  `terraform output -raw billing_export_dataset`, then save.
+
+Google automatically creates the table shown by
+`terraform output -raw billing_export_table`. Initial data can take hours to
+appear, and the current and previous month backfill can take up to five days.
+Do not run the collector until the table exists.
+
 `JFROG_ACCESS_TOKEN` is read only by the local import helper. It is never a
 Terraform input, stored in state, or deployed to GCP. The API key is marked
 sensitive and stored in Secret Manager, but its secret value is necessarily
 present in Terraform state. Use an encrypted, access-controlled remote backend.
 
-## Existing resources
+## Existing resources and platform boundary
 
-The module does not create the billing export, BigQuery dataset/table,
-organization, folder, project, VPC, subnet, NAT gateway, or public endpoint.
-Cloud Run uses its default outbound internet path to reach Google APIs and the
-EMP HTTPS endpoint.
+The module does not create the organization, folder, project, billing account,
+VPC, subnet, NAT gateway, or public endpoint. Set
+`create_billing_export_dataset = false` only when reusing an existing export
+dataset. Cloud Run uses its default outbound internet path to reach Google APIs
+and the EMP HTTPS endpoint.
 
 By default, the module enables the required APIs and leaves them enabled during
 destroy so shared project services are not disrupted. Set
@@ -129,9 +152,12 @@ gcloud run jobs execute "$(terraform output -raw cloud_run_job_name)" \
   --wait
 ```
 
-Inspect logs with the value of the `log_filter` output. Destroying the module
-removes the scheduler, job, IAM grants, service accounts, secret, and imported
-Artifact Registry repository. Required Google APIs remain enabled by design.
+Inspect logs with the value of the `log_filter` output. Disable the billing
+export before destroy. By default, Terraform refuses to delete a non-empty
+billing dataset to protect cost history. Set
+`billing_export_delete_contents_on_destroy = true` only for a disposable test
+deployment whose exported data may be deleted. Required Google APIs remain
+enabled by design.
 
 ## Versioning
 

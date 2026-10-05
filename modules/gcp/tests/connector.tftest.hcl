@@ -33,6 +33,11 @@ run "plans_least_privilege_connector" {
   command = plan
 
   assert {
+    condition     = length(google_bigquery_dataset.billing_export) == 1 && google_bigquery_dataset.billing_export[0].location == "US"
+    error_message = "The connector must create a US multi-region billing export dataset by default."
+  }
+
+  assert {
     condition     = google_artifact_registry_repository.collector.docker_config[0].immutable_tags
     error_message = "Artifact Registry must reject overwritten collector tags."
   }
@@ -75,6 +80,25 @@ run "plans_least_privilege_connector" {
   assert {
     condition     = google_cloud_run_v2_job_iam_member.scheduler_invoker.role == "roles/run.invoker"
     error_message = "The scheduler must receive only the Cloud Run invoker role on the job."
+  }
+}
+
+run "derives_export_table_and_supports_existing_dataset" {
+  command = plan
+
+  variables {
+    bigquery_table                = null
+    create_billing_export_dataset = false
+  }
+
+  assert {
+    condition     = length(google_bigquery_dataset.billing_export) == 0
+    error_message = "Dataset creation must be disabled when the caller supplies an existing export dataset."
+  }
+
+  assert {
+    condition     = one([for env in google_cloud_run_v2_job.collector.template[0].template[0].containers[0].env : env if env.name == "BIGQUERY_TABLE"]).value == "gcp_billing_export_v1_ABCDEF_ABCDEF_ABCDEF"
+    error_message = "The standard export table name must be derived from the billing account ID when omitted."
   }
 }
 

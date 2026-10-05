@@ -8,6 +8,12 @@
                     "check_ids": [
                         "CKV_GCP_84"
                     ]
+                },
+                {
+                    "resource": "google_bigquery_dataset.billing_export[0]",
+                    "check_ids": [
+                        "CKV_GCP_81"
+                    ]
                 }
             ]
         }

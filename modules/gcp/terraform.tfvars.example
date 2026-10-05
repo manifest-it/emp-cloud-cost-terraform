@@ -2,8 +2,10 @@ deployment_project_id    = "customer-connector-project"
 billing_export_project_id = "customer-billing-export"
 bigquery_query_project_id = "customer-connector-project"
 bigquery_dataset          = "billing_export"
-bigquery_table            = "gcp_billing_export_v1_XXXXXX_XXXXXX_XXXXXX"
 billing_account_id        = "XXXXXX-XXXXXX-XXXXXX"
+
+create_billing_export_dataset   = true
+billing_export_dataset_location = "US"
 
 artifact_version      = "1.0.0"
 jfrog_artifactory_url = "https://company.jfrog.io/artifactory"

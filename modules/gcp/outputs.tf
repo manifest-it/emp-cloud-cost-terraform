@@ -28,6 +28,21 @@ output "collector_image_uri" {
   value       = local.image_uri
 }
 
+output "billing_export_dataset" {
+  description = "Fully qualified BigQuery dataset used for the Cloud Billing export."
+  value       = "${var.billing_export_project_id}.${var.bigquery_dataset}"
+}
+
+output "billing_export_table" {
+  description = "Standard Cloud Billing export table read by the collector."
+  value       = local.billing_export_table
+}
+
+output "billing_export_setup_url" {
+  description = "Google Cloud console URL for the one-time standard usage cost export enrollment."
+  value       = "https://console.cloud.google.com/billing/export?project=${var.billing_export_project_id}"
+}
+
 output "connector_version" {
   description = "Exact immutable connector version deployed to GCP."
   value       = var.artifact_version

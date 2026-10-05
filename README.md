@@ -80,8 +80,10 @@ unset JFROG_ACCESS_TOKEN
 ## GCP usage
 
 The GCP module deploys an outbound-only Cloud Run Job with separate runtime and
-scheduler service accounts. It reads an existing Cloud Billing BigQuery export
-and imports the exact CI-built OCI image into customer-owned Artifact Registry.
+scheduler service accounts. It creates the BigQuery billing-export dataset and
+imports the exact CI-built OCI image into customer-owned Artifact Registry.
+Google requires a billing administrator to enable the standard usage export in
+the Cloud Billing console after the dataset is created.
 See [modules/gcp/README.md](modules/gcp/README.md) for the complete deployment
 contract and [examples/gcp](examples/gcp) for a minimal caller.
 

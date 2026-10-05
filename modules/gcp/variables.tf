@@ -9,7 +9,7 @@ variable "deployment_project_id" {
 }
 
 variable "billing_export_project_id" {
-  description = "GCP project containing the existing Cloud Billing BigQuery export."
+  description = "GCP project where the Cloud Billing BigQuery export dataset is stored."
   type        = string
 
   validation {
@@ -29,7 +29,7 @@ variable "bigquery_query_project_id" {
 }
 
 variable "bigquery_dataset" {
-  description = "Existing BigQuery billing-export dataset ID."
+  description = "BigQuery dataset ID used for the Cloud Billing export."
   type        = string
 
   validation {
@@ -39,13 +39,38 @@ variable "bigquery_dataset" {
 }
 
 variable "bigquery_table" {
-  description = "Existing standard Cloud Billing export table ID."
+  description = "Standard Cloud Billing export table ID. Null derives the Google-defined name from billing_account_id."
   type        = string
+  default     = null
+  nullable    = true
 
   validation {
-    condition     = can(regex("^[A-Za-z0-9_]+$", var.bigquery_table))
+    condition     = var.bigquery_table == null || can(regex("^[A-Za-z0-9_]+$", var.bigquery_table))
     error_message = "bigquery_table may contain only letters, digits, and underscores."
   }
+}
+
+variable "create_billing_export_dataset" {
+  description = "Whether Terraform creates the BigQuery dataset used for the Cloud Billing export."
+  type        = bool
+  default     = true
+}
+
+variable "billing_export_dataset_location" {
+  description = "BigQuery location for a managed billing export dataset. US is recommended for retroactive current and previous month data."
+  type        = string
+  default     = "US"
+
+  validation {
+    condition     = length(trimspace(var.billing_export_dataset_location)) > 0
+    error_message = "billing_export_dataset_location must not be empty."
+  }
+}
+
+variable "billing_export_delete_contents_on_destroy" {
+  description = "Whether destroy may delete a non-empty managed billing export dataset. Keep false for customer deployments to protect billing history."
+  type        = bool
+  default     = false
 }
 
 variable "billing_account_id" {

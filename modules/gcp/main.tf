@@ -4,6 +4,7 @@ locals {
   repository_id        = "${var.resource_prefix}-artifacts"
   runtime_account_id   = "${substr(var.resource_prefix, 0, 18)}-runtime"
   scheduler_account_id = "${substr(var.resource_prefix, 0, 16)}-scheduler"
+  billing_export_table = coalesce(var.bigquery_table, "gcp_billing_export_v1_${replace(var.billing_account_id, "-", "_")}")
   image_uri            = "${var.region}-docker.pkg.dev/${var.deployment_project_id}/${local.repository_id}/gcp-cloud-cost-connector:${var.artifact_version}"
   run_uri              = "https://run.googleapis.com/v2/projects/${var.deployment_project_id}/locations/${var.region}/jobs/${local.job_name}:run"
   deployment_services = toset([
@@ -18,7 +19,7 @@ locals {
     BILLING_EXPORT_PROJECT_ID = var.billing_export_project_id
     BIGQUERY_QUERY_PROJECT_ID = var.bigquery_query_project_id
     BIGQUERY_DATASET          = var.bigquery_dataset
-    BIGQUERY_TABLE            = var.bigquery_table
+    BIGQUERY_TABLE            = local.billing_export_table
     CONNECTOR_VERSION         = var.artifact_version
     ENVIRONMENT_NAME          = var.environment_name
     TIMEZONE                  = var.timezone
@@ -47,11 +48,25 @@ resource "google_project_service" "deployment" {
 }
 
 resource "google_project_service" "bigquery" {
-  for_each = var.manage_project_services ? toset([var.bigquery_query_project_id]) : toset([])
+  for_each = var.manage_project_services ? toset([var.billing_export_project_id, var.bigquery_query_project_id]) : toset([])
 
   project            = each.value
   service            = "bigquery.googleapis.com"
   disable_on_destroy = false
+}
+
+resource "google_bigquery_dataset" "billing_export" {
+  count = var.create_billing_export_dataset ? 1 : 0
+
+  project                    = var.billing_export_project_id
+  dataset_id                 = var.bigquery_dataset
+  friendly_name              = "EMP Cloud Billing export"
+  description                = "Standard Cloud Billing export consumed by the EMP cloud cost connector."
+  location                   = var.billing_export_dataset_location
+  delete_contents_on_destroy = var.billing_export_delete_contents_on_destroy
+  labels                     = local.default_labels
+
+  depends_on = [google_project_service.bigquery]
 }
 
 resource "google_artifact_registry_repository" "collector" {
@@ -109,6 +124,8 @@ resource "google_bigquery_dataset_iam_member" "billing_reader" {
   dataset_id = var.bigquery_dataset
   role       = "roles/bigquery.dataViewer"
   member     = "serviceAccount:${google_service_account.runtime.email}"
+
+  depends_on = [google_bigquery_dataset.billing_export]
 }
 
 resource "google_project_iam_member" "query_job_user" {

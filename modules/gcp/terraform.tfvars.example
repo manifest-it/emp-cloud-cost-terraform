@@ -1,0 +1,24 @@
+deployment_project_id    = "customer-connector-project"
+billing_export_project_id = "customer-billing-export"
+bigquery_query_project_id = "customer-connector-project"
+bigquery_dataset          = "billing_export"
+bigquery_table            = "gcp_billing_export_v1_XXXXXX_XXXXXX_XXXXXX"
+billing_account_id        = "XXXXXX-XXXXXX-XXXXXX"
+
+artifact_version      = "1.0.0"
+jfrog_artifactory_url = "https://company.jfrog.io/artifactory"
+jfrog_repository      = "mit-cloud-cost-agent"
+
+empirik_api_url = "https://customer.api.manifestit.tech/client/cost"
+org_key         = "customer-org-key"
+mit_api_key     = "<API_KEY_PLACEHOLDER>"
+environment_name = "production"
+
+region              = "us-central1"
+schedule_expression = "0 10 * * *"
+schedule_timezone   = "UTC"
+
+labels = {
+  application = "cloud-cost-connector"
+  managed_by  = "terraform"
+}

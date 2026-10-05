@@ -1,0 +1,15 @@
+{
+    "failed_checks": [
+        {
+            "file": "/main.tf",
+            "findings": [
+                {
+                    "resource": "google_artifact_registry_repository.collector",
+                    "check_ids": [
+                        "CKV_GCP_84"
+                    ]
+                }
+            ]
+        }
+    ]
+}

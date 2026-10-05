@@ -36,3 +36,34 @@ jobs:
           bash -n modules/aws/scripts/*.sh
           checkov --directory modules/aws --framework terraform --baseline modules/aws/.checkov.baseline --quiet --compact --skip-download
           checkov --directory . --framework secrets --quiet --compact --skip-download
+
+  gcp:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - uses: hashicorp/setup-terraform@dfe3c3f87815947d99a8997f908cb6525fc44e9e # v4.0.1
+        with:
+          terraform_version: "1.15.2"
+
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: "3.13"
+
+      - name: Install Checkov
+        run: python -m pip install --disable-pip-version-check checkov==3.3.19
+
+      - name: Validate GCP module
+        run: |
+          set -euo pipefail
+          terraform -chdir=modules/gcp fmt -check -diff
+          terraform -chdir=modules/gcp init -backend=false
+          terraform -chdir=modules/gcp validate
+          terraform -chdir=modules/gcp test
+          terraform -chdir=examples/gcp fmt -check -diff
+          terraform -chdir=examples/gcp init -backend=false
+          terraform -chdir=examples/gcp validate
+          bash -n modules/gcp/scripts/*.sh
+          checkov --directory modules/gcp --framework terraform --baseline modules/gcp/.checkov.baseline --quiet --compact --skip-download

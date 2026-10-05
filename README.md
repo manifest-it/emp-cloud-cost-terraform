@@ -9,13 +9,30 @@ versioned in JFrog Artifactory.
 ```text
 modules/
   aws/       AWS Lambda and EventBridge Scheduler connector
-  gcp/       Reserved for the future GCP connector
+  gcp/       GCP Cloud Run Job and Cloud Scheduler connector
 examples/
   aws/       Minimal AWS module usage
+  gcp/       Minimal GCP module usage
 ```
 
 AWS and GCP are independent modules. They do not share provider conditionals,
 state, or deployment resources.
+
+## Architecture
+
+```text
+AWS: Scheduler -> Lambda -> Cost Explorer -> EMP API
+GCP: Scheduler -> Cloud Run Job -> BigQuery billing export -> EMP API
+```
+
+| Provider | Main resources created | Runtime access |
+| --- | --- | --- |
+| AWS | S3 artifact bucket, Lambda, Scheduler, SQS DLQ, logs, IAM roles | Cost Explorer read and log write |
+| GCP | Artifact Registry, Cloud Run Job, Scheduler, Secret Manager, service accounts | BigQuery read/query, log write, and connector-secret read |
+
+Terraform needs permission to manage those resources and IAM bindings. See the
+[AWS](modules/aws/README.md) and [GCP](modules/gcp/README.md) module READMEs for
+provider-specific prerequisites.
 
 ## AWS usage
 
@@ -60,6 +77,14 @@ terraform apply connector.tfplan
 unset JFROG_ACCESS_TOKEN
 ```
 
+## GCP usage
+
+The GCP module deploys an outbound-only Cloud Run Job with separate runtime and
+scheduler service accounts. It reads an existing Cloud Billing BigQuery export
+and imports the exact CI-built OCI image into customer-owned Artifact Registry.
+See [modules/gcp/README.md](modules/gcp/README.md) for the complete deployment
+contract and [examples/gcp](examples/gcp) for a minimal caller.
+
 ## Releases
 
 Release Please maintains an independent release PR for each provider module.
@@ -84,8 +109,8 @@ are not published immediately on every push.
 - Every provider module uses least-privilege cloud IAM and outbound HTTPS.
 - AWS VPC attachment is optional and uses only customer-supplied subnets and
   security groups; the module does not create networking resources.
-- `mit_api_key` is sensitive but is stored in Terraform state because Lambda
-  environment variables are Terraform-managed. Protect the state accordingly.
+- `mit_api_key` is sensitive but is stored in Terraform state because the cloud
+  runtime secret is Terraform-managed. Protect the state accordingly.
 - Generated state, plans, `.tfvars`, and downloaded artifacts are ignored.
 
 The module repository contains no collector source, binaries, credentials,

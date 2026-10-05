@@ -1,5 +1,13 @@
 # Changelog
 
+## [2.2.0](https://github.com/manifest-it/emp-cloud-cost-terraform/compare/aws-terraform-v2.1.0...aws-terraform-v2.2.0) (2026-10-05)
+
+
+### Features
+
+* **aws:** allow collector to resolve account display names ([4ca6644](https://github.com/manifest-it/emp-cloud-cost-terraform/commit/4ca66441717d285a863d376fe0f8810bcd6991c4))
+* **aws:** allow collector to resolve account display names ([16523a9](https://github.com/manifest-it/emp-cloud-cost-terraform/commit/16523a9e85570abc61297383d7caf3e2408813c7))
+
 ## [2.1.0](https://github.com/manifest-it/emp-cloud-cost-terraform/compare/aws-terraform-v2.0.1...aws-terraform-v2.1.0) (2026-10-05)
 
 

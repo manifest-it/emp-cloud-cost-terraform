@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.0.1](https://github.com/manifest-it/emp-cloud-cost-terraform/compare/aws-terraform-v2.0.0...aws-terraform-v2.0.1) (2026-10-05)
+
+
+### Bug Fixes
+
+* **aws:** use unversioned cost endpoint ([e551a12](https://github.com/manifest-it/emp-cloud-cost-terraform/commit/e551a12d16502d1f3b6433b16e572989ccaf8a8e))
+
 ## [2.0.0](https://github.com/manifest-it/emp-cloud-cost-terraform/compare/aws-terraform-v1.1.0...aws-terraform-v2.0.0) (2026-10-01)
 
 

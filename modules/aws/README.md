@@ -37,6 +37,11 @@ collector authenticates to the EMP API with the UI-provided `org_key` and
 key is marked sensitive, but Terraform stores it in state as part of the Lambda
 environment. Store Terraform state securely.
 
+The UI must also provide `cost_source_id`: the numeric `id` returned by Cost
+Source Create or Update. Terraform injects it into the Lambda as
+`COST_SOURCE_ID`; the collector sends it as `Mit-Cost-Source-Id` so the API can
+validate the configured source and scope.
+
 ## Optional 15-day backfill
 
 Set `backfill_last_15_days = true` to refresh the 15 historical billing days

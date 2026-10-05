@@ -6,6 +6,7 @@ jfrog_repository              = "mit-cloud-cost-agent"
 empirik_api_url = "https://dev.api.manifestit.tech/client/cost"
 org_key         = "customer-org-key"
 mit_api_key     = "<API_KEY_PLACEHOLDER>"
+cost_source_id  = 42
 
 timezone               = "UTC"
 evaluation_lag_days    = 2

@@ -71,6 +71,16 @@ variable "mit_api_key" {
   }
 }
 
+variable "cost_source_id" {
+  description = "Cost Source Configuration ID returned by Cost Source Create or Update."
+  type        = number
+
+  validation {
+    condition     = var.cost_source_id > 0 && floor(var.cost_source_id) == var.cost_source_id
+    error_message = "cost_source_id must be a positive integer."
+  }
+}
+
 variable "timezone" {
   description = "IANA timezone used for billing-day boundaries."
   type        = string

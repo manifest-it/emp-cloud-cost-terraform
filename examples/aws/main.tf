@@ -19,6 +19,11 @@ variable "mit_api_key" {
   sensitive   = true
 }
 
+variable "cost_source_id" {
+  description = "ID returned by Cost Source Configuration create or update."
+  type        = number
+}
+
 module "manifest_cloud_cost_aws" {
   source = "../../modules/aws"
 
@@ -30,6 +35,7 @@ module "manifest_cloud_cost_aws" {
   empirik_api_url = "https://dev.api.manifestit.tech/client/cost"
   org_key         = "customer-org-key"
   mit_api_key     = var.mit_api_key
+  cost_source_id  = var.cost_source_id
 
   # Optional: refresh the 15 historical days before the normal N-2 day.
   backfill_last_15_days = false

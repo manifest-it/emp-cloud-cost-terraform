@@ -5,10 +5,31 @@ its SHA-256 checksum and keyless Sigstore bundle, copies it into customer-owned
 S3, and deploys the Lambda runtime, IAM, logs, EventBridge Scheduler, and
 scheduler dead-letter queue.
 
+## Architecture
+
+```text
+JFrog -> verified ZIP in customer S3
+Scheduler -> Lambda -> Cost Explorer -> EMP API
+                    -> CloudWatch Logs
+Scheduler failures -> SQS dead-letter queue
+```
+
+## Resources and permissions
+
+The module creates a private versioned S3 artifact bucket, Lambda, CloudWatch
+log group, EventBridge schedule, encrypted SQS dead-letter queue, and dedicated
+Lambda/Scheduler IAM roles. It creates no networking resources.
+
+The Terraform identity must manage those services, create IAM roles and
+policies, call `sts:GetCallerIdentity`, and use `iam:PassRole`. The Lambda role
+gets `ce:GetCostAndUsage` and scoped log writes; VPC mode also adds required EC2
+network-interface actions. The Scheduler role can invoke only this Lambda and
+send failures only to its queue.
+
 ## Prerequisites
 
 - Terraform 1.6 or newer
-- AWS management-account credentials
+- AWS management-account credentials with the deployer permissions above
 - An AWS provider configured by the calling root module
 - `cosign`, `curl`, `openssl`, `shasum`, and `unzip`
 - A short-lived JFrog token with read access to
@@ -30,8 +51,9 @@ terraform plan
 terraform apply
 ```
 
-The JFrog token is used only by the local download helper during planning and
-application. It is not stored in Terraform state or deployed to Lambda. The
+The JFrog token is used only by the local download helper when Terraform
+evaluates the artifact data source, normally during planning. It is not stored
+in Terraform state or deployed to Lambda. The
 collector authenticates to the EMP API with the UI-provided `org_key` and
 `mit_api_key`, returned as `mitApiKey` by Cost Source Create or Update. The API
 key is marked sensitive, but Terraform stores it in state as part of the Lambda

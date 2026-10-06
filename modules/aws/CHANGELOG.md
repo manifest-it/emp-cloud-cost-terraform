@@ -1,5 +1,13 @@
 # Changelog
 
+## [2.2.1](https://github.com/manifest-it/emp-cloud-cost-terraform/compare/aws-terraform-v2.2.0...aws-terraform-v2.2.1) (2026-10-06)
+
+
+### Bug Fixes
+
+* **terraform:** remove unnecessary AWS Organizations permission ([7eb680d](https://github.com/manifest-it/emp-cloud-cost-terraform/commit/7eb680d534ec59220e0d0023f56776eeb0d2cae2))
+* **terraform:** remove unnecessary AWS Organizations permission ([5220813](https://github.com/manifest-it/emp-cloud-cost-terraform/commit/5220813c20d5dcb926f7dcfa4f4d089b50fa902a))
+
 ## [2.2.0](https://github.com/manifest-it/emp-cloud-cost-terraform/compare/aws-terraform-v2.1.0...aws-terraform-v2.2.0) (2026-10-05)
 
 

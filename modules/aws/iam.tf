@@ -25,13 +25,6 @@ data "aws_iam_policy_document" "collector" {
   }
 
   statement {
-    sid       = "ListOrganizationAccounts"
-    effect    = "Allow"
-    actions   = ["organizations:ListAccounts"]
-    resources = ["*"]
-  }
-
-  statement {
     sid    = "WriteFunctionLogs"
     effect = "Allow"
     actions = [

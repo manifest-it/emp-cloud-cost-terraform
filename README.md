@@ -27,7 +27,7 @@ GCP: Scheduler -> Cloud Run Job -> BigQuery billing export -> EMP API
 
 | Provider | Main resources created | Runtime access |
 | --- | --- | --- |
-| AWS | S3 artifact bucket, Lambda, Scheduler, SQS DLQ, logs, IAM roles | Cost Explorer read, AWS Organizations account-name lookup, and log write |
+| AWS | S3 artifact bucket, Lambda, Scheduler, SQS DLQ, logs, IAM roles | Cost Explorer read and log write |
 | GCP | Artifact Registry, Cloud Run Job, Scheduler, Secret Manager, service accounts | BigQuery read/query, log write, and connector-secret read |
 
 Terraform needs permission to manage those resources and IAM bindings. See the

@@ -24,6 +24,7 @@ variables {
   jfrog_repository          = "cloud-cost-connectors"
   empirik_api_url           = "https://api.manifestit.tech/client/cost"
   org_key                   = "test-org"
+  cost_source_id            = 42
   mit_api_key               = "<API_KEY_PLACEHOLDER>"
   environment_name          = "production"
   manage_project_services   = false
@@ -60,6 +61,11 @@ run "plans_least_privilege_connector" {
   assert {
     condition     = google_cloud_run_v2_job.collector.template[0].task_count == 1 && google_cloud_run_v2_job.collector.template[0].parallelism == 1
     error_message = "The collector must run as one non-parallel Cloud Run task."
+  }
+
+  assert {
+    condition     = one([for env in google_cloud_run_v2_job.collector.template[0].template[0].containers[0].env : env if env.name == "COST_SOURCE_ID"]).value == "42"
+    error_message = "COST_SOURCE_ID must be passed to the collector."
   }
 
   assert {
@@ -130,6 +136,16 @@ run "rejects_empty_api_key" {
   }
 
   expect_failures = [var.mit_api_key]
+}
+
+run "rejects_invalid_cost_source_id" {
+  command = plan
+
+  variables {
+    cost_source_id = 0
+  }
+
+  expect_failures = [var.cost_source_id]
 }
 
 run "rejects_invalid_billing_identifiers" {

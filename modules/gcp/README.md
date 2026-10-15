@@ -86,6 +86,7 @@ module "manifest_cloud_cost_gcp" {
 
   empirik_api_url = "https://customer.api.manifestit.tech/client/cost"
   org_key         = "customer-org-key"
+  cost_source_id  = var.cost_source_id
   mit_api_key     = var.mit_api_key
   environment_name = "production"
 }
@@ -101,6 +102,13 @@ terraform plan -out=connector.tfplan
 terraform apply connector.tfplan
 unset JFROG_ACCESS_TOKEN
 ```
+
+## Cost source
+
+The UI must provide `cost_source_id`: the numeric `id` returned by Cost Source
+Create or Update. Terraform injects it into the Cloud Run Job as
+`COST_SOURCE_ID`; the collector sends it as `Mit-Cost-Source-Id` so the API can
+resolve the configured cost source.
 
 ## Required billing export enrollment
 

@@ -20,6 +20,10 @@ variable "bigquery_query_project_id" { type = string }
 variable "billing_account_id" { type = string }
 variable "bigquery_dataset" { type = string }
 variable "org_key" { type = string }
+variable "cost_source_id" {
+  description = "ID returned by Cost Source Configuration create or update."
+  type        = number
+}
 variable "mit_api_key" {
   type      = string
   sensitive = true
@@ -47,6 +51,7 @@ module "manifest_cloud_cost_gcp" {
 
   empirik_api_url  = "https://customer.api.manifestit.tech/client/cost"
   org_key          = var.org_key
+  cost_source_id   = var.cost_source_id
   mit_api_key      = var.mit_api_key
   environment_name = "production"
   region           = var.region

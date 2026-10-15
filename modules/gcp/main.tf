@@ -25,6 +25,7 @@ locals {
     TIMEZONE                  = var.timezone
     EMPIRIK_API_URL           = var.empirik_api_url
     ORG_KEY                   = var.org_key
+    COST_SOURCE_ID            = tostring(var.cost_source_id)
     PROJECT_ALLOWLIST         = join(",", var.project_allowlist)
     PROJECT_DENYLIST          = join(",", var.project_denylist)
     EVALUATION_LAG_DAYS       = tostring(var.evaluation_lag_days)

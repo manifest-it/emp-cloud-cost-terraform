@@ -29,6 +29,9 @@ locals {
     PROJECT_ALLOWLIST         = join(",", var.project_allowlist)
     PROJECT_DENYLIST          = join(",", var.project_denylist)
     EVALUATION_LAG_DAYS       = tostring(var.evaluation_lag_days)
+    BACKFILL_ENABLED          = tostring(var.backfill_enabled)
+    BACKFILL_START_DATE       = var.backfill_start_date
+    BACKFILL_END_DATE         = var.backfill_end_date
     ANOMALY_THRESHOLD_PCT     = tostring(var.anomaly_threshold_pct)
     MIN_ABSOLUTE_DELTA_USD    = tostring(var.min_absolute_delta_usd)
     MIN_BASELINE_USD          = tostring(var.min_baseline_usd)
@@ -171,6 +174,18 @@ resource "google_cloud_run_v2_job" "collector" {
   location            = var.region
   labels              = local.default_labels
   deletion_protection = false
+
+  lifecycle {
+    precondition {
+      condition     = !var.backfill_enabled || ((var.backfill_start_date == "") == (var.backfill_end_date == ""))
+      error_message = "When backfill is enabled, supply both backfill dates or omit both for the rolling 15-date default."
+    }
+
+    precondition {
+      condition     = !var.backfill_enabled || (var.backfill_start_date == "" && var.backfill_end_date == "") || try(timecmp("${var.backfill_start_date}T00:00:00Z", "${var.backfill_end_date}T00:00:00Z") <= 0, false)
+      error_message = "An enabled backfill requires backfill_start_date to be on or before backfill_end_date."
+    }
+  }
 
   template {
     task_count  = 1

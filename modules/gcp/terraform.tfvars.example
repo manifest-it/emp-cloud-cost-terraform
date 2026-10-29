@@ -21,6 +21,11 @@ region              = "us-central1"
 schedule_expression = "0 10 * * *"
 schedule_timezone   = "UTC"
 
+# Enable only for a one-off historical replay, then disable and apply again.
+backfill_enabled    = false
+backfill_start_date = ""
+backfill_end_date   = ""
+
 labels = {
   application = "cloud-cost-connector"
   managed_by  = "terraform"

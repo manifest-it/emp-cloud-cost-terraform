@@ -89,6 +89,127 @@ run "plans_least_privilege_connector" {
   }
 }
 
+run "backfill_disabled_by_default" {
+  command = plan
+
+  assert {
+    condition     = one([for env in google_cloud_run_v2_job.collector.template[0].template[0].containers[0].env : env if env.name == "BACKFILL_ENABLED"]).value == "false"
+    error_message = "Backfill must be disabled by default."
+  }
+
+  assert {
+    condition     = alltrue([for env in google_cloud_run_v2_job.collector.template[0].template[0].containers[0].env : (env.value == "") if contains(["BACKFILL_START_DATE", "BACKFILL_END_DATE"], env.name)])
+    error_message = "Backfill dates must be empty by default."
+  }
+}
+
+run "allows_collector_default_backfill_range" {
+  command = plan
+
+  variables {
+    backfill_enabled = true
+  }
+
+  assert {
+    condition     = one([for env in google_cloud_run_v2_job.collector.template[0].template[0].containers[0].env : env if env.name == "BACKFILL_ENABLED"]).value == "true"
+    error_message = "Backfill must be enabled without explicit dates."
+  }
+
+  assert {
+    condition     = alltrue([for env in google_cloud_run_v2_job.collector.template[0].template[0].containers[0].env : (env.value == "") if contains(["BACKFILL_START_DATE", "BACKFILL_END_DATE"], env.name)])
+    error_message = "Dates must stay empty so the collector calculates the rolling range at execution."
+  }
+}
+
+run "passes_backfill_range_to_collector" {
+  command = plan
+
+  variables {
+    backfill_enabled    = true
+    backfill_start_date = "2020-01-01"
+    backfill_end_date   = "2020-06-30"
+  }
+
+  assert {
+    condition     = one([for env in google_cloud_run_v2_job.collector.template[0].template[0].containers[0].env : env if env.name == "BACKFILL_ENABLED"]).value == "true"
+    error_message = "The enabled backfill flag must reach Cloud Run."
+  }
+
+  assert {
+    condition     = one([for env in google_cloud_run_v2_job.collector.template[0].template[0].containers[0].env : env if env.name == "BACKFILL_START_DATE"]).value == var.backfill_start_date
+    error_message = "The start date must reach Cloud Run unchanged."
+  }
+
+  assert {
+    condition     = one([for env in google_cloud_run_v2_job.collector.template[0].template[0].containers[0].env : env if env.name == "BACKFILL_END_DATE"]).value == var.backfill_end_date
+    error_message = "The end date must reach Cloud Run unchanged."
+  }
+}
+
+run "supports_single_day_backfill" {
+  command = plan
+
+  variables {
+    backfill_enabled    = true
+    backfill_start_date = "2020-01-01"
+    backfill_end_date   = "2020-01-01"
+  }
+}
+
+run "rejects_backfill_without_start" {
+  command = plan
+
+  variables {
+    backfill_enabled  = true
+    backfill_end_date = "2020-06-30"
+  }
+
+  expect_failures = [google_cloud_run_v2_job.collector]
+}
+
+run "rejects_backfill_without_end" {
+  command = plan
+
+  variables {
+    backfill_enabled    = true
+    backfill_start_date = "2020-01-01"
+  }
+
+  expect_failures = [google_cloud_run_v2_job.collector]
+}
+
+run "rejects_reversed_backfill_range" {
+  command = plan
+
+  variables {
+    backfill_enabled    = true
+    backfill_start_date = "2020-06-30"
+    backfill_end_date   = "2020-01-01"
+  }
+
+  expect_failures = [google_cloud_run_v2_job.collector]
+}
+
+run "rejects_invalid_start_date" {
+  command = plan
+
+  variables {
+    backfill_start_date = "2020-02-30"
+  }
+
+  expect_failures = [var.backfill_start_date]
+}
+
+run "rejects_invalid_end_date_format" {
+  command = plan
+
+  variables {
+    backfill_end_date = "30-06-2020"
+  }
+
+  expect_failures = [var.backfill_end_date]
+}
+
 run "derives_export_table_and_supports_existing_dataset" {
   command = plan
 

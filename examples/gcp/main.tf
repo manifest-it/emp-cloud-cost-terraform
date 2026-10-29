@@ -33,6 +33,21 @@ variable "region" {
   default = "us-central1"
 }
 
+variable "backfill_enabled" {
+  type    = bool
+  default = false
+}
+
+variable "backfill_start_date" {
+  type    = string
+  default = ""
+}
+
+variable "backfill_end_date" {
+  type    = string
+  default = ""
+}
+
 module "manifest_cloud_cost_gcp" {
   source = "../../modules/gcp"
 
@@ -55,6 +70,10 @@ module "manifest_cloud_cost_gcp" {
   mit_api_key      = var.mit_api_key
   environment_name = "production"
   region           = var.region
+
+  backfill_enabled    = var.backfill_enabled
+  backfill_start_date = var.backfill_start_date
+  backfill_end_date   = var.backfill_end_date
 }
 
 output "cloud_run_job_name" {

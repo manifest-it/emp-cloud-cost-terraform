@@ -204,6 +204,37 @@ variable "evaluation_lag_days" {
   }
 }
 
+variable "backfill_enabled" {
+  description = "Run the inclusive historical date range instead of daily collection. Disable after the one-off backfill completes."
+  type        = bool
+  default     = false
+  nullable    = false
+}
+
+variable "backfill_start_date" {
+  description = "First historical usage date (YYYY-MM-DD), required when backfill_enabled is true."
+  type        = string
+  default     = ""
+  nullable    = false
+
+  validation {
+    condition     = var.backfill_start_date == "" || (can(regex("^[0-9]{4}-[0-9]{2}-[0-9]{2}$", var.backfill_start_date)) && can(formatdate("YYYY-MM-DD", "${var.backfill_start_date}T00:00:00Z")))
+    error_message = "backfill_start_date must be empty or a valid YYYY-MM-DD date."
+  }
+}
+
+variable "backfill_end_date" {
+  description = "Last historical usage date (YYYY-MM-DD), required when backfill_enabled is true. Must precede the collector's daily evaluation date."
+  type        = string
+  default     = ""
+  nullable    = false
+
+  validation {
+    condition     = var.backfill_end_date == "" || (can(regex("^[0-9]{4}-[0-9]{2}-[0-9]{2}$", var.backfill_end_date)) && can(formatdate("YYYY-MM-DD", "${var.backfill_end_date}T00:00:00Z")))
+    error_message = "backfill_end_date must be empty or a valid YYYY-MM-DD date."
+  }
+}
+
 variable "anomaly_threshold_pct" {
   description = "Percentage increase over baseline required for an anomaly."
   type        = number

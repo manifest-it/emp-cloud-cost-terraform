@@ -177,12 +177,12 @@ resource "google_cloud_run_v2_job" "collector" {
 
   lifecycle {
     precondition {
-      condition     = !var.backfill_enabled || (var.backfill_start_date != "" && var.backfill_end_date != "")
-      error_message = "backfill_start_date and backfill_end_date are required when backfill_enabled is true."
+      condition     = !var.backfill_enabled || ((var.backfill_start_date == "") == (var.backfill_end_date == ""))
+      error_message = "When backfill is enabled, supply both backfill dates or omit both for the rolling 15-date default."
     }
 
     precondition {
-      condition     = !var.backfill_enabled || try(timecmp("${var.backfill_start_date}T00:00:00Z", "${var.backfill_end_date}T00:00:00Z") <= 0, false)
+      condition     = !var.backfill_enabled || (var.backfill_start_date == "" && var.backfill_end_date == "") || try(timecmp("${var.backfill_start_date}T00:00:00Z", "${var.backfill_end_date}T00:00:00Z") <= 0, false)
       error_message = "An enabled backfill requires backfill_start_date to be on or before backfill_end_date."
     }
   }

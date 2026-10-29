@@ -179,17 +179,24 @@ backfill_end_date   = "2026-09-30"
 ```
 
 Terraform passes these as `BACKFILL_ENABLED`, `BACKFILL_START_DATE`, and
-`BACKFILL_END_DATE` in the Cloud Run Job environment. Both dates are required
-when enabled, must be valid `YYYY-MM-DD` dates, and start must not exceed end.
-The range is inclusive; equal dates replay one day. The collector additionally
-requires end to precede its daily evaluation date, using its timezone and lag.
-That time-dependent check happens at execution, not Terraform plan time.
+`BACKFILL_END_DATE` in the Cloud Run Job environment. When enabled with both
+dates empty or omitted, the collector defaults to 15 inclusive dates ending at
+its daily evaluation date (N-16 through N-2 with the default lag). The collector
+calculates these dates at execution using its timezone and evaluation lag;
+Terraform passes empty dates rather than calculating deployment-time dates.
+
+For an explicit range, supply both dates in valid `YYYY-MM-DD` format; start
+must not exceed end. Supplying only one date is an error. The range is
+inclusive; equal dates replay one day. End must be on or before the daily
+evaluation date. That time-dependent check happens in the collector at execution,
+not Terraform plan time.
 
 Apply the configuration, then execute the job manually using the command above.
 Applying Terraform updates the job; it does not execute it. Backfill mode
 processes the historical range **instead of daily collection**. Disable
 `backfill_enabled` and apply again after completion, before the next scheduled
-run; otherwise every invocation replays the range. For a one-off run without
+run; otherwise every invocation processes the explicit range or rolling default.
+For a one-off run without
 changing scheduled behavior, prefer per-execution environment overrides.
 
 Only history already present in BigQuery can be imported. Destination retention

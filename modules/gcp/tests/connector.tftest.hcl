@@ -98,8 +98,26 @@ run "backfill_disabled_by_default" {
   }
 
   assert {
-    condition     = alltrue([for env in google_cloud_run_v2_job.collector.template[0].template[0].containers[0].env : env.value == "" if contains(["BACKFILL_START_DATE", "BACKFILL_END_DATE"], env.name)])
+    condition     = alltrue([for env in google_cloud_run_v2_job.collector.template[0].template[0].containers[0].env : (env.value == "") if contains(["BACKFILL_START_DATE", "BACKFILL_END_DATE"], env.name)])
     error_message = "Backfill dates must be empty by default."
+  }
+}
+
+run "allows_collector_default_backfill_range" {
+  command = plan
+
+  variables {
+    backfill_enabled = true
+  }
+
+  assert {
+    condition     = one([for env in google_cloud_run_v2_job.collector.template[0].template[0].containers[0].env : env if env.name == "BACKFILL_ENABLED"]).value == "true"
+    error_message = "Backfill must be enabled without explicit dates."
+  }
+
+  assert {
+    condition     = alltrue([for env in google_cloud_run_v2_job.collector.template[0].template[0].containers[0].env : (env.value == "") if contains(["BACKFILL_START_DATE", "BACKFILL_END_DATE"], env.name)])
+    error_message = "Dates must stay empty so the collector calculates the rolling range at execution."
   }
 }
 

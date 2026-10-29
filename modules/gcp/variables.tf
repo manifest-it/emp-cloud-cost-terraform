@@ -212,25 +212,25 @@ variable "backfill_enabled" {
 }
 
 variable "backfill_start_date" {
-  description = "First historical usage date (YYYY-MM-DD), required when backfill_enabled is true."
+  description = "First usage date (YYYY-MM-DD). Supply both dates or omit both for 15 inclusive dates ending at the daily evaluation date."
   type        = string
   default     = ""
   nullable    = false
 
   validation {
-    condition     = var.backfill_start_date == "" || (can(regex("^[0-9]{4}-[0-9]{2}-[0-9]{2}$", var.backfill_start_date)) && can(formatdate("YYYY-MM-DD", "${var.backfill_start_date}T00:00:00Z")))
+    condition     = var.backfill_start_date == "" || (can(regex("^[0-9]{4}-[0-9]{2}-[0-9]{2}$", var.backfill_start_date)) && can(formatdate("YYYY-MM-DD", format("%sT00:00:00Z", var.backfill_start_date))))
     error_message = "backfill_start_date must be empty or a valid YYYY-MM-DD date."
   }
 }
 
 variable "backfill_end_date" {
-  description = "Last historical usage date (YYYY-MM-DD), required when backfill_enabled is true. Must precede the collector's daily evaluation date."
+  description = "Last usage date (YYYY-MM-DD), on or before the daily evaluation date. Omit both dates to use the collector's rolling 15-date default."
   type        = string
   default     = ""
   nullable    = false
 
   validation {
-    condition     = var.backfill_end_date == "" || (can(regex("^[0-9]{4}-[0-9]{2}-[0-9]{2}$", var.backfill_end_date)) && can(formatdate("YYYY-MM-DD", "${var.backfill_end_date}T00:00:00Z")))
+    condition     = var.backfill_end_date == "" || (can(regex("^[0-9]{4}-[0-9]{2}-[0-9]{2}$", var.backfill_end_date)) && can(formatdate("YYYY-MM-DD", format("%sT00:00:00Z", var.backfill_end_date))))
     error_message = "backfill_end_date must be empty or a valid YYYY-MM-DD date."
   }
 }

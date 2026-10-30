@@ -1,5 +1,18 @@
 # Changelog
 
+## [0.4.0](https://github.com/manifest-it/emp-cloud-cost-terraform/compare/gcp-terraform-v0.3.0...gcp-terraform-v0.4.0) (2026-10-29)
+
+
+### Features
+
+* **gcp:** support configurable historical backfill in Terraform ([1d036cd](https://github.com/manifest-it/emp-cloud-cost-terraform/commit/1d036cd7b970748e2a49855ed81802633fb80d0f))
+* **gcp:** support configurable historical backfill in Terraform ([1c2fa11](https://github.com/manifest-it/emp-cloud-cost-terraform/commit/1c2fa11a6e5f7b82e7e67ff0d1faeef1933454f5))
+
+
+### Bug Fixes
+
+* **gcp:** simplify backfill date validation and test expressions ([528176b](https://github.com/manifest-it/emp-cloud-cost-terraform/commit/528176b6784786101185d3436b04106bea1eb4e2))
+
 ## [0.3.0](https://github.com/manifest-it/emp-cloud-cost-terraform/compare/gcp-terraform-v0.2.0...gcp-terraform-v0.3.0) (2026-10-15)
 
 

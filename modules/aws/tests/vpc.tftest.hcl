@@ -62,8 +62,8 @@ run "non_vpc_by_default" {
   }
 
   assert {
-    condition     = aws_lambda_function.collector.environment[0].variables.BACKFILL_LAST_15_DAYS == "false"
-    error_message = "Last-15-day backfill must be disabled by default."
+    condition     = aws_lambda_function.collector.environment[0].variables.BACKFILL_ENABLED == "false"
+    error_message = "Backfill must be disabled by default."
   }
 
   assert {
@@ -82,17 +82,70 @@ run "non_vpc_by_default" {
   }
 }
 
-run "enables_last_15_day_backfill" {
+run "passes_backfill_range_to_collector" {
   command = plan
 
   variables {
-    backfill_last_15_days = true
+    backfill_enabled    = true
+    backfill_start_date = "2026-04-01"
+    backfill_end_date   = "2026-04-30"
   }
 
   assert {
-    condition     = aws_lambda_function.collector.environment[0].variables.BACKFILL_LAST_15_DAYS == "true"
-    error_message = "Lambda must receive the enabled last-15-day backfill setting."
+    condition     = aws_lambda_function.collector.environment[0].variables.BACKFILL_ENABLED == "true"
+    error_message = "The enabled backfill flag must reach Lambda."
   }
+
+  assert {
+    condition     = aws_lambda_function.collector.environment[0].variables.BACKFILL_START_DATE == "2026-04-01" && aws_lambda_function.collector.environment[0].variables.BACKFILL_END_DATE == "2026-04-30"
+    error_message = "Backfill dates must reach Lambda."
+  }
+}
+
+run "allows_collector_default_backfill_range" {
+  command = plan
+
+  variables {
+    backfill_enabled = true
+  }
+
+  assert {
+    condition     = aws_lambda_function.collector.environment[0].variables.BACKFILL_START_DATE == "" && aws_lambda_function.collector.environment[0].variables.BACKFILL_END_DATE == ""
+    error_message = "Backfill dates must be empty when omitted."
+  }
+}
+
+run "rejects_backfill_without_end" {
+  command = plan
+
+  variables {
+    backfill_enabled    = true
+    backfill_start_date = "2026-04-01"
+  }
+
+  expect_failures = [aws_lambda_function.collector]
+}
+
+run "rejects_reversed_backfill_range" {
+  command = plan
+
+  variables {
+    backfill_enabled    = true
+    backfill_start_date = "2026-04-30"
+    backfill_end_date   = "2026-04-01"
+  }
+
+  expect_failures = [aws_lambda_function.collector]
+}
+
+run "rejects_invalid_backfill_date_format" {
+  command = plan
+
+  variables {
+    backfill_start_date = "30-04-2026"
+  }
+
+  expect_failures = [var.backfill_start_date]
 }
 
 run "rejects_retired_ingestion_path" {

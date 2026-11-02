@@ -64,21 +64,31 @@ Source Create or Update. Terraform injects it into the Lambda as
 `COST_SOURCE_ID`; the collector sends it as `Mit-Cost-Source-Id` so the API can
 validate the configured source and scope.
 
-## Optional 15-day backfill
+## Historical backfill
 
-Set `backfill_last_15_days = true` to refresh the 15 historical billing days
-before the normal evaluation date. It is `false` by default. The normal
-scheduled run writes N-2; historical processing covers N-17 through N-3 so the
-two paths do not overlap.
+Backfill is disabled by default, preserving daily collection. With a collector
+version that supports date-range backfill, set:
 
-The collector queries Cost Explorer once for the range and seven baseline days,
-then sends every available billing date in that 15-day window to EMP in one
-batched request. Dates Cost Explorer omits because no billing data exists are
-not synthesized as zero-cost samples.
-Backfilled samples omit live-run duration and staleness metrics. No checkpoint,
-runtime S3 access, self-invocation, or additional AWS SDK client is used. With
-no durable completion state, leaving the option enabled refreshes the rolling
-15-day window on every scheduled invocation.
+```hcl
+backfill_enabled    = true
+backfill_start_date = "2026-04-01"
+backfill_end_date   = "2026-04-30"
+```
+
+Terraform passes these as `BACKFILL_ENABLED`, `BACKFILL_START_DATE`, and
+`BACKFILL_END_DATE` in the Lambda environment. Dates must be valid `YYYY-MM-DD`
+values; start must not exceed end, and supplying only one is an error. If both
+are omitted, the collector defaults to 15 inclusive dates ending at its daily
+evaluation date (N-16 through N-2 with the default lag), calculated at execution.
+End must be on or before the daily evaluation date; the collector checks this at
+runtime, not at plan time.
+
+Backfill replaces daily collection while enabled. The collector queries Cost
+Explorer once for the range plus seven baseline days and sends every available
+billing date to EMP in one batched request. Dates Cost Explorer omits are not
+synthesized as zero-cost samples. There is no completion state, so set
+`backfill_enabled = false` and apply again after the replay; otherwise every
+scheduled invocation repeats it.
 
 ## Optional VPC attachment
 

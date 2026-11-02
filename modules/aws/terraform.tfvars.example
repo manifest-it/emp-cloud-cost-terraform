@@ -21,7 +21,9 @@ log_retention_days  = 30
 account_allowlist = []
 account_denylist  = []
 
-backfill_last_15_days = false
+backfill_enabled    = false
+# backfill_start_date = "2026-04-01"
+# backfill_end_date   = "2026-04-30"
 
 tags = {
   Application = "cloud-cost-connector"

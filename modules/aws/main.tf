@@ -164,7 +164,9 @@ resource "aws_lambda_function" "collector" {
       MIN_BASELINE_USD       = tostring(var.min_baseline_usd)
       ACCOUNT_ALLOWLIST      = join(",", var.account_allowlist)
       ACCOUNT_DENYLIST       = join(",", var.account_denylist)
-      BACKFILL_LAST_15_DAYS  = tostring(var.backfill_last_15_days)
+      BACKFILL_ENABLED       = tostring(var.backfill_enabled)
+      BACKFILL_START_DATE    = var.backfill_start_date
+      BACKFILL_END_DATE      = var.backfill_end_date
     }
   }
 
@@ -174,6 +176,16 @@ resource "aws_lambda_function" "collector" {
   ]
 
   lifecycle {
+    precondition {
+      condition     = !var.backfill_enabled || ((var.backfill_start_date == "") == (var.backfill_end_date == ""))
+      error_message = "When backfill is enabled, supply both backfill dates or omit both for the rolling 15-date default."
+    }
+
+    precondition {
+      condition     = !var.backfill_enabled || (var.backfill_start_date == "" && var.backfill_end_date == "") || try(timecmp("${var.backfill_start_date}T00:00:00Z", "${var.backfill_end_date}T00:00:00Z") <= 0, false)
+      error_message = "An enabled backfill requires backfill_start_date to be on or before backfill_end_date."
+    }
+
     precondition {
       condition     = (length(var.vpc_subnet_ids) == 0) == (length(var.vpc_security_group_ids) == 0)
       error_message = "vpc_subnet_ids and vpc_security_group_ids must either both be empty or both contain values."

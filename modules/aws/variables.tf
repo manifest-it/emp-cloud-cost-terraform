@@ -153,10 +153,35 @@ variable "account_denylist" {
   }
 }
 
-variable "backfill_last_15_days" {
-  description = "When true, refresh the 15 historical days before the normal N-2 evaluation date on each invocation."
+variable "backfill_enabled" {
+  description = "Run the inclusive historical date range instead of daily collection. Disable after the one-off backfill completes."
   type        = bool
   default     = false
+  nullable    = false
+}
+
+variable "backfill_start_date" {
+  description = "First usage date (YYYY-MM-DD). Supply both dates or omit both for 15 inclusive dates ending at the daily evaluation date."
+  type        = string
+  default     = ""
+  nullable    = false
+
+  validation {
+    condition     = var.backfill_start_date == "" || (can(regex("^[0-9]{4}-[0-9]{2}-[0-9]{2}$", var.backfill_start_date)) && can(formatdate("YYYY-MM-DD", format("%sT00:00:00Z", var.backfill_start_date))))
+    error_message = "backfill_start_date must be empty or a valid YYYY-MM-DD date."
+  }
+}
+
+variable "backfill_end_date" {
+  description = "Last usage date (YYYY-MM-DD), on or before the daily evaluation date. Omit both dates to use the collector's rolling 15-date default."
+  type        = string
+  default     = ""
+  nullable    = false
+
+  validation {
+    condition     = var.backfill_end_date == "" || (can(regex("^[0-9]{4}-[0-9]{2}-[0-9]{2}$", var.backfill_end_date)) && can(formatdate("YYYY-MM-DD", format("%sT00:00:00Z", var.backfill_end_date))))
+    error_message = "backfill_end_date must be empty or a valid YYYY-MM-DD date."
+  }
 }
 
 variable "schedule_expression" {

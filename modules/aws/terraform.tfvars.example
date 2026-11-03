@@ -21,7 +21,12 @@ log_retention_days  = 30
 account_allowlist = []
 account_denylist  = []
 
-backfill_last_15_days = false
+# One-time historical backfill via a separate EventBridge schedule.
+backfill_enabled = false
+# backfill_schedule_at = "2026-11-02T03:00:00" # future time in schedule_timezone
+# backfill_days        = 15
+# backfill_start_date  = "2026-01-01" # optional explicit range; overrides backfill_days
+# backfill_end_date    = "2026-06-30"
 
 tags = {
   Application = "cloud-cost-connector"

@@ -37,8 +37,7 @@ module "manifest_cloud_cost_aws" {
   mit_api_key     = var.mit_api_key
   cost_source_id  = var.cost_source_id
 
-  # Optional: refresh the 15 historical days before the normal N-2 day.
-  backfill_last_15_days = false
+  backfill_enabled = false
 
   # Optional: attach Lambda to existing customer networking. Leave both lists
   # empty for the default non-VPC deployment. These subnets need NAT or

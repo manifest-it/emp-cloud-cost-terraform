@@ -2,29 +2,32 @@
 
 This module downloads an immutable AWS collector artifact from JFrog, verifies
 its SHA-256 checksum and keyless Sigstore bundle, copies it into customer-owned
-S3, and deploys the Lambda runtime, IAM, logs, EventBridge Scheduler, and
-scheduler dead-letter queue.
+S3, and deploys the Lambda runtime, IAM, logs, EventBridge Scheduler schedules
+(daily and optional one-time backfill), and a dead-letter queue.
 
 ## Architecture
 
 ```text
 JFrog -> verified ZIP in customer S3
-Scheduler -> Lambda -> Cost Explorer -> EMP API
-                    -> CloudWatch Logs
-Scheduler failures -> SQS dead-letter queue
+Daily schedule    {"mode":"daily"}    \
+                                        -> Lambda -> Cost Explorer -> EMP API
+One-time schedule {"mode":"backfill"} /           -> CloudWatch Logs
+Scheduler delivery failures and failed async invocations -> SQS dead-letter queue
 ```
 
 ## Resources and permissions
 
 The module creates a private versioned S3 artifact bucket, Lambda, CloudWatch
-log group, EventBridge schedule, encrypted SQS dead-letter queue, and dedicated
+log group, daily EventBridge schedule, optional one-time backfill schedule,
+asynchronous-invocation failure destination, encrypted SQS dead-letter queue, and dedicated
 Lambda/Scheduler IAM roles. It creates no networking resources.
 
 The Terraform identity must manage those services, create IAM roles and
 policies, call `sts:GetCallerIdentity`, and use `iam:PassRole`. The Lambda role
-gets `ce:GetCostAndUsage` and scoped log writes; VPC mode also adds required EC2
-network-interface actions. The Scheduler role can invoke only this Lambda and
-send failures only to its queue.
+gets `ce:GetCostAndUsage`, scoped log writes, and `sqs:SendMessage` on the
+module dead-letter queue for failed asynchronous invocations; VPC mode also adds
+required EC2 network-interface actions. The Scheduler role can invoke only this
+Lambda and send failures only to its queue.
 
 ## Prerequisites
 
@@ -64,21 +67,54 @@ Source Create or Update. Terraform injects it into the Lambda as
 `COST_SOURCE_ID`; the collector sends it as `Mit-Cost-Source-Id` so the API can
 validate the configured source and scope.
 
-## Optional 15-day backfill
+## One-time historical backfill
 
-Set `backfill_last_15_days = true` to refresh the 15 historical billing days
-before the normal evaluation date. It is `false` by default. The normal
-scheduled run writes N-2; historical processing covers N-17 through N-3 so the
-two paths do not overlap.
+The same Lambda serves two EventBridge Scheduler schedules. Each schedule sends
+a JSON payload that selects the collector mode:
 
-The collector queries Cost Explorer once for the range and seven baseline days,
-then sends every available billing date in that 15-day window to EMP in one
-batched request. Dates Cost Explorer omits because no billing data exists are
-not synthesized as zero-cost samples.
-Backfilled samples omit live-run duration and staleness metrics. No checkpoint,
-runtime S3 access, self-invocation, or additional AWS SDK client is used. With
-no durable completion state, leaving the option enabled refreshes the rolling
-15-day window on every scheduled invocation.
+| Schedule | Expression | Payload |
+| --- | --- | --- |
+| `<name_prefix>` (always) | `schedule_expression` (daily cron) | `{"mode":"daily"}` - collects N-2 |
+| `<name_prefix>-backfill` (when `backfill_enabled`) | `at(backfill_schedule_at)` | `{"mode":"backfill","days":180}` or `{"mode":"backfill","start_date":"...","end_date":"..."}` |
+
+Enable a backfill with a future run time in `schedule_timezone`:
+
+```hcl
+backfill_enabled     = true
+backfill_schedule_at = "2026-11-02T03:00:00" # local time, no offset
+backfill_days        = 180                   # ends at N-3, 1-400 days
+
+# Or an explicit inclusive range instead of backfill_days (end must be <= N-3):
+# backfill_start_date = "2026-01-01"
+# backfill_end_date   = "2026-06-30"
+```
+
+Lifecycle:
+
+- `apply` creates the one-time schedule; it fires once at `backfill_schedule_at`.
+- After running, the schedule remains in AWS with no further invocations
+  (`action_after_completion = "NONE"`), so Terraform does not drift or recreate
+  and replay it.
+- To run another backfill, change `backfill_schedule_at` (and the range) and apply.
+- To clean up, set `backfill_enabled = false` and apply.
+
+By default the backfill ends at N-3 so it never overlaps the daily N-2 run. The
+collector issues one Cost Explorer query for the whole range (with a seven-day
+anomaly baseline) and sends all days in one batched EMP push.
+Dates Cost Explorer omits are not synthesized as zero-cost samples. Backfilled
+samples omit live-run duration and staleness metrics. EMP pushes are
+idempotent, so retrying a failed backfill is safe.
+
+Operational guidance:
+
+- Requires a collector `artifact_version` that supports the `mode` payload. Older
+  collectors ignore the payload and run a daily collection instead.
+- Set `lambda_timeout_seconds = 900` while backfilling large ranges.
+- The Lambda uses reserved concurrency `1`. Schedule the backfill at least an hour
+  away from the daily cron; an overlapping invocation is throttled and retried.
+- Failed asynchronous invocations are retried twice and then sent to the
+  dead-letter queue, alongside Scheduler delivery failures.
+- Terraform warns when `backfill_schedule_at` appears to be in the past.
 
 ## Optional VPC attachment
 

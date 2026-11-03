@@ -62,8 +62,8 @@ run "non_vpc_by_default" {
   }
 
   assert {
-    condition     = aws_lambda_function.collector.environment[0].variables.BACKFILL_LAST_15_DAYS == "false"
-    error_message = "Last-15-day backfill must be disabled by default."
+    condition     = !contains(nonsensitive(keys(aws_lambda_function.collector.environment[0].variables)), "BACKFILL_LAST_15_DAYS")
+    error_message = "Backfill must be selected by the scheduler payload, not a persistent Lambda environment flag."
   }
 
   assert {
@@ -79,19 +79,6 @@ run "non_vpc_by_default" {
   assert {
     condition     = !contains(nonsensitive(keys(aws_lambda_function.collector.environment[0].variables)), "X_API_KEY")
     error_message = "Lambda must not receive the retired X_API_KEY variable."
-  }
-}
-
-run "enables_last_15_day_backfill" {
-  command = plan
-
-  variables {
-    backfill_last_15_days = true
-  }
-
-  assert {
-    condition     = aws_lambda_function.collector.environment[0].variables.BACKFILL_LAST_15_DAYS == "true"
-    error_message = "Lambda must receive the enabled last-15-day backfill setting."
   }
 }
 

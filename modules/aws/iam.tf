@@ -34,6 +34,13 @@ data "aws_iam_policy_document" "collector" {
     resources = ["${aws_cloudwatch_log_group.collector.arn}:*"]
   }
 
+  statement {
+    sid       = "SendFailedAsyncInvocationToDLQ"
+    effect    = "Allow"
+    actions   = ["sqs:SendMessage"]
+    resources = [aws_sqs_queue.scheduler_dlq.arn]
+  }
+
   dynamic "statement" {
     for_each = local.vpc_enabled ? [1] : []
 

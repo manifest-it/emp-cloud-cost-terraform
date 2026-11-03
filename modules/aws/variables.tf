@@ -153,10 +153,59 @@ variable "account_denylist" {
   }
 }
 
-variable "backfill_last_15_days" {
-  description = "When true, refresh the 15 historical days before the normal N-2 evaluation date on each invocation."
+variable "backfill_enabled" {
+  description = "Create a one-time EventBridge Scheduler schedule that invokes the collector with a backfill payload at backfill_schedule_at. Daily collection is unaffected."
   type        = bool
   default     = false
+  nullable    = false
+}
+
+variable "backfill_schedule_at" {
+  description = "Local date-time (YYYY-MM-DDThh:mm:ss, interpreted in schedule_timezone) when the one-time backfill runs. Required when backfill_enabled is true. Change it to replay the backfill."
+  type        = string
+  default     = ""
+  nullable    = false
+
+  validation {
+    condition     = var.backfill_schedule_at == "" || (can(regex("^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}$", var.backfill_schedule_at)) && can(timeadd("${var.backfill_schedule_at}Z", "0s")))
+    error_message = "backfill_schedule_at must be empty or a valid YYYY-MM-DDThh:mm:ss date-time."
+  }
+}
+
+variable "backfill_days" {
+  description = "Number of historical billing days to backfill, ending the day before the daily evaluation date (N-3). Ignored when backfill_start_date and backfill_end_date are set."
+  type        = number
+  default     = 180
+  nullable    = false
+
+  validation {
+    condition     = var.backfill_days >= 1 && var.backfill_days <= 400 && floor(var.backfill_days) == var.backfill_days
+    error_message = "backfill_days must be an integer from 1 through 400."
+  }
+}
+
+variable "backfill_start_date" {
+  description = "Optional first billing date (YYYY-MM-DD) of an explicit backfill range. Supply with backfill_end_date, or omit both to use backfill_days."
+  type        = string
+  default     = ""
+  nullable    = false
+
+  validation {
+    condition     = var.backfill_start_date == "" || (can(regex("^[0-9]{4}-[0-9]{2}-[0-9]{2}$", var.backfill_start_date)) && can(formatdate("YYYY-MM-DD", "${var.backfill_start_date}T00:00:00Z")))
+    error_message = "backfill_start_date must be empty or a valid YYYY-MM-DD date."
+  }
+}
+
+variable "backfill_end_date" {
+  description = "Optional last billing date (YYYY-MM-DD) of an explicit backfill range. The collector rejects dates after N-3, which the daily schedule covers."
+  type        = string
+  default     = ""
+  nullable    = false
+
+  validation {
+    condition     = var.backfill_end_date == "" || (can(regex("^[0-9]{4}-[0-9]{2}-[0-9]{2}$", var.backfill_end_date)) && can(formatdate("YYYY-MM-DD", "${var.backfill_end_date}T00:00:00Z")))
+    error_message = "backfill_end_date must be empty or a valid YYYY-MM-DD date."
+  }
 }
 
 variable "schedule_expression" {

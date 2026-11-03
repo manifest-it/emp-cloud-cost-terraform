@@ -18,6 +18,11 @@ output "scheduler_name" {
   value       = aws_scheduler_schedule.collector.name
 }
 
+output "backfill_scheduler_name" {
+  description = "Name of the one-time backfill schedule, or null when backfill_enabled is false."
+  value       = one(aws_scheduler_schedule.backfill[*].name)
+}
+
 output "runtime_role_arn" {
   description = "Least-privilege IAM role used by the collector."
   value       = aws_iam_role.collector.arn

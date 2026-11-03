@@ -175,7 +175,7 @@ variable "backfill_schedule_at" {
 variable "backfill_days" {
   description = "Number of historical billing days to backfill, ending the day before the daily evaluation date (N-3). Ignored when backfill_start_date and backfill_end_date are set."
   type        = number
-  default     = 180
+  default     = 15
   nullable    = false
 
   validation {

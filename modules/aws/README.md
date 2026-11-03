@@ -75,14 +75,14 @@ a JSON payload that selects the collector mode:
 | Schedule | Expression | Payload |
 | --- | --- | --- |
 | `<name_prefix>` (always) | `schedule_expression` (daily cron) | `{"mode":"daily"}` - collects N-2 |
-| `<name_prefix>-backfill` (when `backfill_enabled`) | `at(backfill_schedule_at)` | `{"mode":"backfill","days":180}` or `{"mode":"backfill","start_date":"...","end_date":"..."}` |
+| `<name_prefix>-backfill` (when `backfill_enabled`) | `at(backfill_schedule_at)` | `{"mode":"backfill","days":15}` or `{"mode":"backfill","start_date":"...","end_date":"..."}` |
 
 Enable a backfill with a future run time in `schedule_timezone`:
 
 ```hcl
 backfill_enabled     = true
 backfill_schedule_at = "2026-11-02T03:00:00" # local time, no offset
-backfill_days        = 180                   # ends at N-3, 1-400 days
+backfill_days        = 15                    # default; ends at N-3, 1-400 days
 
 # Or an explicit inclusive range instead of backfill_days (end must be <= N-3):
 # backfill_start_date = "2026-01-01"

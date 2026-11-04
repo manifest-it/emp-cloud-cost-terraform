@@ -18,9 +18,9 @@ output "scheduler_name" {
   value       = aws_scheduler_schedule.collector.name
 }
 
-output "backfill_scheduler_name" {
-  description = "Name of the one-time backfill schedule, or null when backfill_enabled is false."
-  value       = one(aws_scheduler_schedule.backfill[*].name)
+output "backfill_payload" {
+  description = "Payload sent by the one-time backfill invocation, or null when backfill_enabled is false."
+  value       = one(aws_lambda_invocation.backfill[*].input)
 }
 
 output "runtime_role_arn" {

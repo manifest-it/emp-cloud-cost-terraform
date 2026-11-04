@@ -154,22 +154,10 @@ variable "account_denylist" {
 }
 
 variable "backfill_enabled" {
-  description = "Create a one-time EventBridge Scheduler schedule that invokes the collector with a backfill payload at backfill_schedule_at. Daily collection is unaffected."
+  description = "Invoke the collector once with a backfill payload during terraform apply. It runs again only when re-enabled or when the backfill range changes. Daily collection is unaffected."
   type        = bool
   default     = false
   nullable    = false
-}
-
-variable "backfill_schedule_at" {
-  description = "Local date-time (YYYY-MM-DDThh:mm:ss, interpreted in schedule_timezone) when the one-time backfill runs. Required when backfill_enabled is true. Change it to replay the backfill."
-  type        = string
-  default     = ""
-  nullable    = false
-
-  validation {
-    condition     = var.backfill_schedule_at == "" || (can(regex("^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}$", var.backfill_schedule_at)) && can(timeadd("${var.backfill_schedule_at}Z", "0s")))
-    error_message = "backfill_schedule_at must be empty or a valid YYYY-MM-DDThh:mm:ss date-time."
-  }
 }
 
 variable "backfill_days" {
@@ -191,7 +179,7 @@ variable "backfill_start_date" {
   nullable    = false
 
   validation {
-    condition     = var.backfill_start_date == "" || (can(regex("^[0-9]{4}-[0-9]{2}-[0-9]{2}$", var.backfill_start_date)) && can(formatdate("YYYY-MM-DD", "${var.backfill_start_date}T00:00:00Z")))
+    condition     = var.backfill_start_date == "" || (can(regex("^[0-9]{4}-[0-9]{2}-[0-9]{2}$", var.backfill_start_date)) && can(formatdate("YYYY-MM-DD", format("%sT00:00:00Z", var.backfill_start_date))))
     error_message = "backfill_start_date must be empty or a valid YYYY-MM-DD date."
   }
 }
@@ -203,7 +191,7 @@ variable "backfill_end_date" {
   nullable    = false
 
   validation {
-    condition     = var.backfill_end_date == "" || (can(regex("^[0-9]{4}-[0-9]{2}-[0-9]{2}$", var.backfill_end_date)) && can(formatdate("YYYY-MM-DD", "${var.backfill_end_date}T00:00:00Z")))
+    condition     = var.backfill_end_date == "" || (can(regex("^[0-9]{4}-[0-9]{2}-[0-9]{2}$", var.backfill_end_date)) && can(formatdate("YYYY-MM-DD", format("%sT00:00:00Z", var.backfill_end_date))))
     error_message = "backfill_end_date must be empty or a valid YYYY-MM-DD date."
   }
 }

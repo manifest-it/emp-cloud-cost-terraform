@@ -7,7 +7,7 @@ locals {
   artifact_key    = "releases/${var.artifact_version}/bootstrap.zip"
   vpc_enabled     = length(var.vpc_subnet_ids) > 0 && length(var.vpc_security_group_ids) > 0
 
-  # Scheduler payloads select the collector mode; the Lambda itself holds no
+  # Invocation payloads select the collector mode; the Lambda itself holds no
   # backfill state. Explicit dates take precedence over backfill_days.
   daily_payload = jsonencode({ mode = "daily" })
   backfill_payload = var.backfill_start_date != "" ? jsonencode({
@@ -236,57 +236,6 @@ resource "aws_scheduler_schedule" "collector" {
   }
 }
 
-# One-time historical backfill. It shares the Lambda, scheduler role, DLQ, and
-# retry policy with the daily schedule but sends a backfill payload. NONE keeps
-# the completed schedule in place: DELETE would cause drift and Terraform would
-# recreate it, replaying the backfill on the next apply.
-resource "aws_scheduler_schedule" "backfill" {
-  count = var.backfill_enabled ? 1 : 0
-
-  name                         = "${local.resource_name}-backfill"
-  group_name                   = aws_scheduler_schedule_group.collector.name
-  schedule_expression          = "at(${var.backfill_schedule_at})"
-  schedule_expression_timezone = var.schedule_timezone
-  state                        = "ENABLED"
-  action_after_completion      = "NONE"
-
-  flexible_time_window {
-    mode = "OFF"
-  }
-
-  target {
-    arn      = aws_lambda_function.collector.arn
-    role_arn = aws_iam_role.scheduler.arn
-    input    = local.backfill_payload
-
-    dead_letter_config {
-      arn = aws_sqs_queue.scheduler_dlq.arn
-    }
-
-    retry_policy {
-      maximum_event_age_in_seconds = 3600
-      maximum_retry_attempts       = 2
-    }
-  }
-
-  lifecycle {
-    precondition {
-      condition     = var.backfill_schedule_at != ""
-      error_message = "backfill_schedule_at is required when backfill_enabled is true."
-    }
-
-    precondition {
-      condition     = (var.backfill_start_date == "") == (var.backfill_end_date == "")
-      error_message = "Supply both backfill_start_date and backfill_end_date, or omit both to use backfill_days."
-    }
-
-    precondition {
-      condition     = var.backfill_start_date == "" || try(timecmp("${var.backfill_start_date}T00:00:00Z", "${var.backfill_end_date}T00:00:00Z") <= 0, false)
-      error_message = "backfill_start_date must be on or before backfill_end_date."
-    }
-  }
-}
-
 resource "aws_lambda_permission" "scheduler" {
   statement_id  = "AllowEventBridgeSchedulerInvoke"
   action        = "lambda:InvokeFunction"
@@ -295,19 +244,9 @@ resource "aws_lambda_permission" "scheduler" {
   source_arn    = aws_scheduler_schedule.collector.arn
 }
 
-resource "aws_lambda_permission" "scheduler_backfill" {
-  count = var.backfill_enabled ? 1 : 0
-
-  statement_id  = "AllowEventBridgeSchedulerBackfillInvoke"
-  action        = "lambda:InvokeFunction"
-  function_name = aws_lambda_function.collector.function_name
-  principal     = "scheduler.amazonaws.com"
-  source_arn    = aws_scheduler_schedule.backfill[0].arn
-}
-
 # Scheduler invokes Lambda asynchronously, so its DLQ only captures delivery
 # failures. This routes function errors (after Lambda's own retries) to the
-# same queue so failed daily or backfill runs are visible.
+# same queue so failed daily runs are visible.
 resource "aws_lambda_function_event_invoke_config" "collector" {
   function_name                = aws_lambda_function.collector.function_name
   maximum_retry_attempts       = 2
@@ -322,10 +261,27 @@ resource "aws_lambda_function_event_invoke_config" "collector" {
   depends_on = [aws_iam_role_policy.collector]
 }
 
-# at() has no timezone suffix, so allow the widest UTC offset before warning.
-check "backfill_schedule_time" {
-  assert {
-    condition     = !var.backfill_enabled || var.backfill_schedule_at == "" || try(timecmp(timeadd("${var.backfill_schedule_at}Z", "14h"), plantimestamp()) > 0, true)
-    error_message = "backfill_schedule_at is in the past. Expected after the backfill has run; otherwise set a future time, or set backfill_enabled = false to remove the completed schedule."
+# One-time historical backfill, invoked synchronously while Terraform applies.
+# CREATE_ONLY invokes the Lambda only when this resource is created or replaced
+# (backfill_enabled turned on, or the backfill payload changes), so unrelated
+# applies such as artifact upgrades do not replay it. A failed backfill fails
+# the apply and is retried on the next apply.
+resource "aws_lambda_invocation" "backfill" {
+  count = var.backfill_enabled ? 1 : 0
+
+  function_name   = aws_lambda_function.collector.function_name
+  input           = local.backfill_payload
+  lifecycle_scope = "CREATE_ONLY"
+
+  lifecycle {
+    precondition {
+      condition     = (var.backfill_start_date == "") == (var.backfill_end_date == "")
+      error_message = "Supply both backfill_start_date and backfill_end_date, or omit both to use backfill_days."
+    }
+
+    precondition {
+      condition     = var.backfill_start_date == "" || try(timecmp(format("%sT00:00:00Z", var.backfill_start_date), format("%sT00:00:00Z", var.backfill_end_date)) <= 0, false)
+      error_message = "backfill_start_date must be on or before backfill_end_date."
+    }
   }
 }

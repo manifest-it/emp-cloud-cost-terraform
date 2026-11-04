@@ -2,28 +2,31 @@
 
 This module downloads an immutable AWS collector artifact from JFrog, verifies
 its SHA-256 checksum and keyless Sigstore bundle, copies it into customer-owned
-S3, and deploys the Lambda runtime, IAM, logs, EventBridge Scheduler schedules
-(daily and optional one-time backfill), and a dead-letter queue.
+S3, and deploys the Lambda runtime, IAM, logs, a daily EventBridge Scheduler
+schedule, an optional one-time backfill invoked during `terraform apply`, and a
+dead-letter queue.
 
 ## Architecture
 
 ```text
 JFrog -> verified ZIP in customer S3
-Daily schedule    {"mode":"daily"}    \
-                                        -> Lambda -> Cost Explorer -> EMP API
-One-time schedule {"mode":"backfill"} /           -> CloudWatch Logs
+Daily schedule          {"mode":"daily"}    \
+                                              -> Lambda -> Cost Explorer -> EMP API
+terraform apply (once)  {"mode":"backfill"} /           -> CloudWatch Logs
 Scheduler delivery failures and failed async invocations -> SQS dead-letter queue
 ```
 
 ## Resources and permissions
 
 The module creates a private versioned S3 artifact bucket, Lambda, CloudWatch
-log group, daily EventBridge schedule, optional one-time backfill schedule,
+log group, daily EventBridge schedule, optional one-time backfill invocation,
 asynchronous-invocation failure destination, encrypted SQS dead-letter queue, and dedicated
 Lambda/Scheduler IAM roles. It creates no networking resources.
 
 The Terraform identity must manage those services, create IAM roles and
-policies, call `sts:GetCallerIdentity`, and use `iam:PassRole`. The Lambda role
+policies, call `sts:GetCallerIdentity`, and use `iam:PassRole`. When
+`backfill_enabled` is true it also needs `lambda:InvokeFunction` on the
+collector. The Lambda role
 gets `ce:GetCostAndUsage`, scoped log writes, and `sqs:SendMessage` on the
 module dead-letter queue for failed asynchronous invocations; VPC mode also adds
 required EC2 network-interface actions. The Scheduler role can invoke only this
@@ -69,20 +72,19 @@ validate the configured source and scope.
 
 ## One-time historical backfill
 
-The same Lambda serves two EventBridge Scheduler schedules. Each schedule sends
-a JSON payload that selects the collector mode:
+The same Lambda serves the daily schedule and an optional one-time backfill.
+Each invocation sends a JSON payload that selects the collector mode:
 
-| Schedule | Expression | Payload |
+| Trigger | When | Payload |
 | --- | --- | --- |
-| `<name_prefix>` (always) | `schedule_expression` (daily cron) | `{"mode":"daily"}` - collects N-2 |
-| `<name_prefix>-backfill` (when `backfill_enabled`) | `at(backfill_schedule_at)` | `{"mode":"backfill","days":15}` or `{"mode":"backfill","start_date":"...","end_date":"..."}` |
+| `<name_prefix>` schedule (always) | `schedule_expression` (daily cron) | `{"mode":"daily"}` - collects N-2 |
+| `aws_lambda_invocation.backfill` (when `backfill_enabled`) | Once, during `terraform apply` | `{"mode":"backfill","days":15}` or `{"mode":"backfill","start_date":"...","end_date":"..."}` |
 
-Enable a backfill with a future run time in `schedule_timezone`:
+Enable a backfill:
 
 ```hcl
-backfill_enabled     = true
-backfill_schedule_at = "2026-11-02T03:00:00" # local time, no offset
-backfill_days        = 15                    # default; ends at N-3, 1-400 days
+backfill_enabled = true
+backfill_days    = 15 # default; ends at N-3, 1-400 days
 
 # Or an explicit inclusive range instead of backfill_days (end must be <= N-3):
 # backfill_start_date = "2026-01-01"
@@ -91,12 +93,17 @@ backfill_days        = 15                    # default; ends at N-3, 1-400 days
 
 Lifecycle:
 
-- `apply` creates the one-time schedule; it fires once at `backfill_schedule_at`.
-- After running, the schedule remains in AWS with no further invocations
-  (`action_after_completion = "NONE"`), so Terraform does not drift or recreate
-  and replay it.
-- To run another backfill, change `backfill_schedule_at` (and the range) and apply.
-- To clean up, set `backfill_enabled = false` and apply.
+- `apply` invokes the Lambda synchronously after it is deployed and waits for
+  the backfill to finish. A failed backfill fails the apply; the next apply
+  retries it.
+- The invocation is recorded in state and is not repeated by later applies,
+  including artifact upgrades and schedule or runtime changes.
+- It runs again only when `backfill_days`, `backfill_start_date`, or
+  `backfill_end_date` changes, when `backfill_enabled` is turned off and on
+  again, or when forced with
+  `terraform apply -replace='module.<name>.aws_lambda_invocation.backfill[0]'`.
+- Setting `backfill_enabled = false` only removes the record from state; it
+  does not invoke the Lambda.
 
 By default the backfill ends at N-3 so it never overlaps the daily N-2 run. The
 collector issues one Cost Explorer query for the whole range (with a seven-day
@@ -109,12 +116,17 @@ Operational guidance:
 
 - Requires a collector `artifact_version` that supports the `mode` payload. Older
   collectors ignore the payload and run a daily collection instead.
-- Set `lambda_timeout_seconds = 900` while backfilling large ranges.
-- The Lambda uses reserved concurrency `1`. Schedule the backfill at least an hour
-  away from the daily cron; an overlapping invocation is throttled and retried.
-- Failed asynchronous invocations are retried twice and then sent to the
-  dead-letter queue, alongside Scheduler delivery failures.
-- Terraform warns when `backfill_schedule_at` appears to be in the past.
+- Set `lambda_timeout_seconds = 900` while backfilling large ranges; `apply`
+  waits for up to that long.
+- The Lambda uses reserved concurrency `1`. Avoid applying while the daily
+  schedule is running; a throttled invocation fails the apply and can be retried.
+- The backfill is synchronous, so it does not use the asynchronous retry policy
+  or dead-letter queue; failures are reported by `terraform apply` and in
+  CloudWatch Logs.
+- Upgrading from a module version that used a `backfill_schedule_at` schedule
+  removes that schedule. If `backfill_enabled` is still true, the backfill runs
+  once more during the upgrade apply; set `backfill_enabled = false` first to
+  skip it.
 
 ## Optional VPC attachment
 

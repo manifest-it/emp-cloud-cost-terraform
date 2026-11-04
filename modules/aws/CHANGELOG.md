@@ -1,5 +1,20 @@
 # Changelog
 
+## [3.0.0](https://github.com/manifest-it/emp-cloud-cost-terraform/compare/aws-terraform-v2.2.1...aws-terraform-v3.0.0) (2026-11-04)
+
+
+### ⚠ BREAKING CHANGES
+
+* **aws:** invoke backfills during Terraform apply
+* **aws:** keep default 15 days for backfill
+* **aws:** add one-time backfill EventBridge schedule
+
+### Features
+
+* **aws:** add one-time backfill EventBridge schedule ([1e9f484](https://github.com/manifest-it/emp-cloud-cost-terraform/commit/1e9f48429c223d324b7ebae9cd713aac4da88242))
+* **aws:** invoke backfills during Terraform apply ([da2db3a](https://github.com/manifest-it/emp-cloud-cost-terraform/commit/da2db3ad8d4ae9c1681dc0887a312dc34b627492))
+* **aws:** keep default 15 days for backfill ([290b68c](https://github.com/manifest-it/emp-cloud-cost-terraform/commit/290b68cf4e228900d828371460f246997c15c73d))
+
 ## [2.2.1](https://github.com/manifest-it/emp-cloud-cost-terraform/compare/aws-terraform-v2.2.0...aws-terraform-v2.2.1) (2026-10-06)
 
 

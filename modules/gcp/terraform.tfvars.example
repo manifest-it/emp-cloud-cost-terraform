@@ -7,7 +7,7 @@ billing_account_id        = "XXXXXX-XXXXXX-XXXXXX"
 create_billing_export_dataset   = true
 billing_export_dataset_location = "US"
 
-artifact_version      = "1.0.0"
+artifact_version      = "2.0.0"
 jfrog_artifactory_url = "https://company.jfrog.io/artifactory"
 jfrog_repository      = "mit-cloud-cost-agent"
 
@@ -21,10 +21,13 @@ region              = "us-central1"
 schedule_expression = "0 10 * * *"
 schedule_timezone   = "UTC"
 
-# Enable only for a one-off historical replay, then disable and apply again.
+# One-time historical backfill executed during terraform apply. Later applies do
+# not repeat it unless the dates change. Omit both dates for 15 dates ending at N-3.
 backfill_enabled    = false
 backfill_start_date = ""
 backfill_end_date   = ""
+# backfill_wait            = true
+# backfill_timeout_seconds = 3600
 
 labels = {
   application = "cloud-cost-connector"

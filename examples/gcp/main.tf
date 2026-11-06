@@ -48,6 +48,16 @@ variable "backfill_end_date" {
   default = ""
 }
 
+variable "backfill_wait" {
+  type    = bool
+  default = true
+}
+
+variable "backfill_timeout_seconds" {
+  type    = number
+  default = 3600
+}
+
 module "manifest_cloud_cost_gcp" {
   source = "../../modules/gcp"
 
@@ -60,7 +70,7 @@ module "manifest_cloud_cost_gcp" {
   create_billing_export_dataset   = true
   billing_export_dataset_location = "US"
 
-  artifact_version      = "1.0.0"
+  artifact_version      = "2.0.0"
   jfrog_artifactory_url = "https://manifestit.jfrog.io/artifactory"
   jfrog_repository      = "mit-cloud-cost-agent"
 
@@ -71,9 +81,11 @@ module "manifest_cloud_cost_gcp" {
   environment_name = "production"
   region           = var.region
 
-  backfill_enabled    = var.backfill_enabled
-  backfill_start_date = var.backfill_start_date
-  backfill_end_date   = var.backfill_end_date
+  backfill_enabled         = var.backfill_enabled
+  backfill_start_date      = var.backfill_start_date
+  backfill_end_date        = var.backfill_end_date
+  backfill_wait            = var.backfill_wait
+  backfill_timeout_seconds = var.backfill_timeout_seconds
 }
 
 output "cloud_run_job_name" {

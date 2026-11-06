@@ -19,6 +19,7 @@ Terraform workstation
   -> download exact OCI archive from JFrog
   -> verify SHA-256 and keyless Sigstore bundle
   -> import into customer Artifact Registry with an immutable version tag
+  -> optional one-time backfill: gcloud run jobs execute --args=--mode=backfill
 ```
 
 Runtime and scheduling use separate service accounts. The runtime receives
@@ -37,6 +38,9 @@ creates and populates the billing table after export enrollment.
 
 The Terraform identity must manage those resources and IAM bindings, attach
 service accounts, enable APIs when requested, and upload the verified image.
+When `backfill_enabled` is true, the active `gcloud` identity must also be able
+to list the job's executions and execute it with overrides, for example with
+`roles/run.developer` on the job or deployment project.
 The runtime receives `roles/bigquery.dataViewer`, `roles/bigquery.jobUser`,
 `roles/logging.logWriter`, and secret-level
 `roles/secretmanager.secretAccessor`. The scheduler receives job-level
@@ -50,12 +54,13 @@ The runtime receives `roles/bigquery.dataViewer`, `roles/bigquery.jobUser`,
   one-time standard usage export enrollment
 - A Google provider configured by the calling root module
 - `cosign`, `crane`, `curl`, `gcloud`, `jq`, `shasum`, and `tar`
+- For `backfill_enabled`, collector `artifact_version` 2.0.0 or later
 - A short-lived JFrog token with read access to
   `mit-cloud-cost-agent/gcp/<artifact_version>/`
 
 Authenticate both Terraform Application Default Credentials and the active
-`gcloud` CLI identity used by the image-import helper, then export the JFrog
-token:
+`gcloud` CLI identity used by the image-import and backfill helpers, then export
+the JFrog token:
 
 ```bash
 gcloud auth application-default login
@@ -80,7 +85,7 @@ module "manifest_cloud_cost_gcp" {
   create_billing_export_dataset   = true
   billing_export_dataset_location = "US"
 
-  artifact_version      = "1.0.0"
+  artifact_version      = "2.0.0"
   jfrog_artifactory_url = "https://manifestit.jfrog.io/artifactory"
   jfrog_repository      = "mit-cloud-cost-agent"
 
@@ -169,41 +174,78 @@ enabled by design.
 
 ## Historical backfill
 
-Backfill is disabled by default, preserving daily collection. With a collector
-image that supports date-range backfill, set these module inputs:
+The Cloud Run Job serves the daily schedule and an optional one-time backfill.
+The execution arguments select the collector mode:
+
+| Trigger | When | Execution arguments |
+| --- | --- | --- |
+| Cloud Scheduler (always) | `schedule_expression` (daily) | none - collects N-2 |
+| `terraform_data.backfill` (when `backfill_enabled`) | Once, during `terraform apply` | `--mode=backfill`, plus `--start-date` and `--end-date` for an explicit range |
+
+Enable a backfill with collector `artifact_version` 2.0.0 or later:
 
 ```hcl
-backfill_enabled    = true
-backfill_start_date = "2026-04-01"
-backfill_end_date   = "2026-09-30"
+backfill_enabled = true # 15 dates ending at N-3
+
+# Or an explicit inclusive range of at most 400 dates (end must be <= N-3):
+# backfill_start_date = "2026-04-01"
+# backfill_end_date   = "2026-09-30"
+
+# backfill_wait            = true # default; apply waits for the execution
+# backfill_timeout_seconds = 3600 # default; applies to this execution only
 ```
 
-Terraform passes these as `BACKFILL_ENABLED`, `BACKFILL_START_DATE`, and
-`BACKFILL_END_DATE` in the Cloud Run Job environment. When enabled with both
-dates empty or omitted, the collector defaults to 15 inclusive dates ending at
-its daily evaluation date (N-16 through N-2 with the default lag). The collector
-calculates these dates at execution using its timezone and evaluation lag;
-Terraform passes empty dates rather than calculating deployment-time dates.
+Lifecycle:
 
-For an explicit range, supply both dates in valid `YYYY-MM-DD` format; start
-must not exceed end. Supplying only one date is an error. The range is
-inclusive; equal dates replay one day. End must be on or before the daily
-evaluation date. That time-dependent check happens in the collector at execution,
-not Terraform plan time.
+- After the job is deployed, `apply` runs `scripts/run-backfill.sh`, which
+  calls `gcloud run jobs execute` with `--args` and `--task-timeout`. These
+  overrides apply only to that execution; the saved job, its environment, and
+  the daily schedule are unchanged.
+- With `backfill_wait = true`, `apply` waits for the execution. A failed
+  backfill fails the apply and taints `terraform_data.backfill`, so the next
+  apply retries it. With `backfill_wait = false`, `apply` returns once the
+  execution starts; check the result in Cloud Run, because later applies do not
+  retry a failed execution.
+- The execution is recorded in state and is not repeated by later applies,
+  including artifact upgrades and schedule or runtime changes.
+- It runs again only when `backfill_start_date` or `backfill_end_date` changes,
+  when `backfill_enabled` is turned off and on again, or when forced with
+  `terraform apply -replace='module.<name>.terraform_data.backfill[0]'`.
+- Setting `backfill_enabled = false` only removes the record from state; it does
+  not execute or cancel anything.
+- If the job already has an unfinished execution, such as the daily run or an
+  earlier backfill, the script fails the apply without starting another. Apply
+  again after it finishes.
 
-Apply the configuration, then execute the job manually using the command above.
-Applying Terraform updates the job; it does not execute it. Backfill mode
-processes the historical range **instead of daily collection**. Disable
-`backfill_enabled` and apply again after completion, before the next scheduled
-run; otherwise every invocation processes the explicit range or rolling default.
-For a one-off run without
-changing scheduled behavior, prefer per-execution environment overrides.
+N-3 is the day before the daily run's evaluation date (N-2 with the default
+`evaluation_lag_days`), so a backfill never overlaps the daily run. Without
+dates, the collector backfills 15 dates ending at N-3, calculated at execution
+from `timezone` and `evaluation_lag_days`. Explicit dates must be valid `YYYY-MM-DD`, supplied together, in
+order, and span at most 400 dates; Terraform checks these during plan. The
+collector rejects an end date after N-3 when it executes. It reads seven extra
+days for anomaly baselines and pushes one EMP request per day with billing data.
+EMP pushes are idempotent, so retrying a failed backfill is safe.
 
-Only history already present in BigQuery can be imported. Destination retention
-is separate. For large ranges, allow sufficient `timeout_seconds` for BigQuery
-queries and one ingestion request per day with data. Pin `artifact_version` to
-the released collector image containing this feature; older images do not
-support these inputs.
+Operational guidance:
+
+- `apply` can wait up to about `(max_retries + 1) * backfill_timeout_seconds`
+  and holds the state lock meanwhile. Each task retry replays the whole range.
+- Interrupting `apply` does not stop the execution. Cancel it with
+  `gcloud run jobs executions cancel <execution> --project=<deployment-project-id> --region=<region>`.
+- Enable backfill only after the billing export table contains the history to
+  import. Missing history cannot be reconstructed, and destination retention is
+  separate.
+- Each pushed day logs `backfill day pushed` with `day` and `total_days`. Add
+  `labels."run.googleapis.com/execution_name"="<execution>"` to the `log_filter`
+  output to follow one execution.
+- For a manual backfill, add `--args=--mode=backfill,--start-date=YYYY-MM-DD,--end-date=YYYY-MM-DD`
+  and `--task-timeout=3600s` to the manual execution command above.
+
+Upgrading from module 0.x removes the `BACKFILL_ENABLED`, `BACKFILL_START_DATE`,
+and `BACKFILL_END_DATE` job environment variables. Daily collection no longer
+depends on disabling `backfill_enabled` after a backfill. If `backfill_enabled`
+is still true, the upgrade apply runs the backfill once; set it to `false` first
+to skip that.
 
 ## Versioning
 

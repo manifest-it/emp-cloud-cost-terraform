@@ -43,6 +43,11 @@ output "billing_export_setup_url" {
   value       = "https://console.cloud.google.com/billing/export?project=${var.billing_export_project_id}"
 }
 
+output "backfill_args" {
+  description = "Execution arguments of the one-time backfill, or null when backfill_enabled is false."
+  value       = one(terraform_data.backfill[*].input)
+}
+
 output "connector_version" {
   description = "Exact immutable connector version deployed to GCP."
   value       = var.artifact_version

@@ -205,14 +205,14 @@ variable "evaluation_lag_days" {
 }
 
 variable "backfill_enabled" {
-  description = "Run the inclusive historical date range instead of daily collection. Disable after the one-off backfill completes."
+  description = "Execute the collector job once with --mode=backfill during terraform apply. It runs again only when re-enabled or when the backfill dates change. Requires artifact_version 2.0.0 or later; daily collection is unaffected."
   type        = bool
   default     = false
   nullable    = false
 }
 
 variable "backfill_start_date" {
-  description = "First usage date (YYYY-MM-DD). Supply both dates or omit both for 15 inclusive dates ending at the daily evaluation date."
+  description = "Optional first usage date (YYYY-MM-DD) of an explicit backfill range. Supply with backfill_end_date, or omit both for 15 dates ending the day before the daily evaluation date (N-3)."
   type        = string
   default     = ""
   nullable    = false
@@ -224,7 +224,7 @@ variable "backfill_start_date" {
 }
 
 variable "backfill_end_date" {
-  description = "Last usage date (YYYY-MM-DD), on or before the daily evaluation date. Omit both dates to use the collector's rolling 15-date default."
+  description = "Optional last usage date (YYYY-MM-DD) of an explicit backfill range of at most 400 dates. The collector rejects dates after N-3, which the daily schedule covers."
   type        = string
   default     = ""
   nullable    = false
@@ -232,6 +232,25 @@ variable "backfill_end_date" {
   validation {
     condition     = var.backfill_end_date == "" || (can(regex("^[0-9]{4}-[0-9]{2}-[0-9]{2}$", var.backfill_end_date)) && can(formatdate("YYYY-MM-DD", format("%sT00:00:00Z", var.backfill_end_date))))
     error_message = "backfill_end_date must be empty or a valid YYYY-MM-DD date."
+  }
+}
+
+variable "backfill_wait" {
+  description = "Wait for the backfill execution to finish during terraform apply and fail the apply if it fails. When false, apply returns once the execution starts and a failed backfill is not retried by later applies."
+  type        = bool
+  default     = true
+  nullable    = false
+}
+
+variable "backfill_timeout_seconds" {
+  description = "Task timeout of the backfill execution only. Scheduled daily executions keep timeout_seconds."
+  type        = number
+  default     = 3600
+  nullable    = false
+
+  validation {
+    condition     = var.backfill_timeout_seconds >= 60 && var.backfill_timeout_seconds <= 86400 && floor(var.backfill_timeout_seconds) == var.backfill_timeout_seconds
+    error_message = "backfill_timeout_seconds must be an integer from 60 through 86400."
   }
 }
 

@@ -29,13 +29,14 @@ locals {
     PROJECT_ALLOWLIST         = join(",", var.project_allowlist)
     PROJECT_DENYLIST          = join(",", var.project_denylist)
     EVALUATION_LAG_DAYS       = tostring(var.evaluation_lag_days)
-    BACKFILL_ENABLED          = tostring(var.backfill_enabled)
-    BACKFILL_START_DATE       = var.backfill_start_date
-    BACKFILL_END_DATE         = var.backfill_end_date
     ANOMALY_THRESHOLD_PCT     = tostring(var.anomaly_threshold_pct)
     MIN_ABSOLUTE_DELTA_USD    = tostring(var.min_absolute_delta_usd)
     MIN_BASELINE_USD          = tostring(var.min_baseline_usd)
   }
+  backfill_args = join(",", concat(
+    ["--mode=backfill"],
+    var.backfill_start_date == "" ? [] : ["--start-date=${var.backfill_start_date}", "--end-date=${var.backfill_end_date}"],
+  ))
   default_labels = merge({
     application = "emp-cloud-cost"
     managed_by  = "terraform"
@@ -175,18 +176,6 @@ resource "google_cloud_run_v2_job" "collector" {
   labels              = local.default_labels
   deletion_protection = false
 
-  lifecycle {
-    precondition {
-      condition     = !var.backfill_enabled || ((var.backfill_start_date == "") == (var.backfill_end_date == ""))
-      error_message = "When backfill is enabled, supply both backfill dates or omit both for the rolling 15-date default."
-    }
-
-    precondition {
-      condition     = !var.backfill_enabled || (var.backfill_start_date == "" && var.backfill_end_date == "") || try(timecmp("${var.backfill_start_date}T00:00:00Z", "${var.backfill_end_date}T00:00:00Z") <= 0, false)
-      error_message = "An enabled backfill requires backfill_start_date to be on or before backfill_end_date."
-    }
-  }
-
   template {
     task_count  = 1
     parallelism = 1
@@ -278,4 +267,54 @@ resource "google_cloud_scheduler_job" "collector" {
     google_cloud_run_v2_job_iam_member.scheduler_invoker,
     google_project_service.deployment,
   ]
+}
+
+# One-time historical backfill, executed while Terraform applies. The script
+# runs only when this resource is created or replaced (backfill_enabled turned
+# on, or the backfill dates change), so unrelated applies such as artifact
+# upgrades do not replay it. The arguments and task timeout override only this
+# execution; the saved job and the daily schedule are unchanged. A failed
+# backfill fails the apply and taints this resource, so the next apply retries.
+resource "terraform_data" "backfill" {
+  count = var.backfill_enabled ? 1 : 0
+
+  triggers_replace = {
+    start_date = var.backfill_start_date
+    end_date   = var.backfill_end_date
+  }
+  input = local.backfill_args
+
+  provisioner "local-exec" {
+    command = "${path.module}/scripts/run-backfill.sh"
+    environment = {
+      PROJECT_ID   = var.deployment_project_id
+      REGION       = var.region
+      JOB_NAME     = google_cloud_run_v2_job.collector.name
+      JOB_ARGS     = self.input
+      TASK_TIMEOUT = "${var.backfill_timeout_seconds}s"
+      WAIT         = tostring(var.backfill_wait)
+    }
+  }
+
+  lifecycle {
+    precondition {
+      condition     = (var.backfill_start_date == "") == (var.backfill_end_date == "")
+      error_message = "Supply both backfill_start_date and backfill_end_date, or omit both for the default 15-day range."
+    }
+
+    precondition {
+      condition     = var.backfill_start_date == "" || try(timecmp(format("%sT00:00:00Z", var.backfill_start_date), format("%sT00:00:00Z", var.backfill_end_date)) <= 0, false)
+      error_message = "backfill_start_date must be on or before backfill_end_date."
+    }
+
+    precondition {
+      condition     = var.backfill_start_date == "" || try(timecmp(timeadd(format("%sT00:00:00Z", var.backfill_start_date), "9576h"), format("%sT00:00:00Z", var.backfill_end_date)) >= 0, false)
+      error_message = "A backfill range must span at most 400 dates."
+    }
+
+    precondition {
+      condition     = tonumber(split(".", var.artifact_version)[0]) >= 2
+      error_message = "Backfill requires artifact_version 2.0.0 or later. Earlier collectors ignore execution arguments and would run a daily collection instead."
+    }
+  }
 }

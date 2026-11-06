@@ -19,7 +19,7 @@ variables {
   bigquery_dataset          = "billing_export"
   bigquery_table            = "gcp_billing_export_v1_ABCDEF_ABCDEF_ABCDEF"
   billing_account_id        = "ABCDEF-ABCDEF-ABCDEF"
-  artifact_version          = "0.1.0"
+  artifact_version          = "2.0.0"
   jfrog_artifactory_url     = "https://example.jfrog.io/artifactory"
   jfrog_repository          = "cloud-cost-connectors"
   empirik_api_url           = "https://api.manifestit.tech/client/cost"
@@ -93,17 +93,22 @@ run "backfill_disabled_by_default" {
   command = plan
 
   assert {
-    condition     = one([for env in google_cloud_run_v2_job.collector.template[0].template[0].containers[0].env : env if env.name == "BACKFILL_ENABLED"]).value == "false"
-    error_message = "Backfill must be disabled by default."
+    condition     = length(terraform_data.backfill) == 0
+    error_message = "No backfill execution may exist unless backfill_enabled is true."
   }
 
   assert {
-    condition     = alltrue([for env in google_cloud_run_v2_job.collector.template[0].template[0].containers[0].env : (env.value == "") if contains(["BACKFILL_START_DATE", "BACKFILL_END_DATE"], env.name)])
-    error_message = "Backfill dates must be empty by default."
+    condition     = output.backfill_args == null
+    error_message = "backfill_args must be null when backfill is disabled."
+  }
+
+  assert {
+    condition     = alltrue([for env in google_cloud_run_v2_job.collector.template[0].template[0].containers[0].env : !startswith(env.name, "BACKFILL_")])
+    error_message = "Backfill must not be configured through the job environment."
   }
 }
 
-run "allows_collector_default_backfill_range" {
+run "backfill_default_range" {
   command = plan
 
   variables {
@@ -111,38 +116,71 @@ run "allows_collector_default_backfill_range" {
   }
 
   assert {
-    condition     = one([for env in google_cloud_run_v2_job.collector.template[0].template[0].containers[0].env : env if env.name == "BACKFILL_ENABLED"]).value == "true"
-    error_message = "Backfill must be enabled without explicit dates."
+    condition     = terraform_data.backfill[0].input == "--mode=backfill"
+    error_message = "Without dates, the backfill must let the collector choose its default range at execution."
   }
 
   assert {
-    condition     = alltrue([for env in google_cloud_run_v2_job.collector.template[0].template[0].containers[0].env : (env.value == "") if contains(["BACKFILL_START_DATE", "BACKFILL_END_DATE"], env.name)])
-    error_message = "Dates must stay empty so the collector calculates the rolling range at execution."
+    condition     = terraform_data.backfill[0].triggers_replace == { start_date = "", end_date = "" }
+    error_message = "Only the backfill dates may replace the backfill and run it again."
+  }
+
+  assert {
+    condition     = output.backfill_args == "--mode=backfill"
+    error_message = "backfill_args must expose the execution arguments."
+  }
+
+  assert {
+    condition     = alltrue([for env in google_cloud_run_v2_job.collector.template[0].template[0].containers[0].env : !startswith(env.name, "BACKFILL_")]) && google_cloud_run_v2_job.collector.template[0].template[0].containers[0].args == null
+    error_message = "Enabling backfill must not change the saved job configuration."
+  }
+
+  assert {
+    condition     = google_cloud_scheduler_job.collector.http_target[0].body == base64encode("{}")
+    error_message = "The daily schedule must keep running the job without arguments."
   }
 }
 
-run "passes_backfill_range_to_collector" {
+run "backfill_explicit_range" {
   command = plan
 
   variables {
     backfill_enabled    = true
-    backfill_start_date = "2020-01-01"
-    backfill_end_date   = "2020-06-30"
+    backfill_start_date = "2026-04-01"
+    backfill_end_date   = "2026-09-30"
   }
 
   assert {
-    condition     = one([for env in google_cloud_run_v2_job.collector.template[0].template[0].containers[0].env : env if env.name == "BACKFILL_ENABLED"]).value == "true"
-    error_message = "The enabled backfill flag must reach Cloud Run."
+    condition     = terraform_data.backfill[0].input == "--mode=backfill,--start-date=2026-04-01,--end-date=2026-09-30"
+    error_message = "Explicit dates must be passed as execution arguments."
   }
 
   assert {
-    condition     = one([for env in google_cloud_run_v2_job.collector.template[0].template[0].containers[0].env : env if env.name == "BACKFILL_START_DATE"]).value == var.backfill_start_date
-    error_message = "The start date must reach Cloud Run unchanged."
+    condition     = terraform_data.backfill[0].triggers_replace == { start_date = "2026-04-01", end_date = "2026-09-30" }
+    error_message = "Changing the backfill dates must replace the backfill and run it again."
+  }
+}
+
+# Plan-only: terraform test runs provisioners on apply, even for overridden
+# resources. Replacement depends only on triggers_replace, so equal triggers and
+# input after unrelated changes mean the backfill is not replayed.
+run "unrelated_change_does_not_replay_backfill" {
+  command = plan
+
+  variables {
+    backfill_enabled         = true
+    backfill_start_date      = "2026-04-01"
+    backfill_end_date        = "2026-09-30"
+    artifact_version         = "2.1.0"
+    backfill_timeout_seconds = 7200
+    backfill_wait            = false
+    timeout_seconds          = 1800
+    schedule_expression      = "0 6 * * *"
   }
 
   assert {
-    condition     = one([for env in google_cloud_run_v2_job.collector.template[0].template[0].containers[0].env : env if env.name == "BACKFILL_END_DATE"]).value == var.backfill_end_date
-    error_message = "The end date must reach Cloud Run unchanged."
+    condition     = terraform_data.backfill[0].triggers_replace == { start_date = "2026-04-01", end_date = "2026-09-30" } && terraform_data.backfill[0].input == run.backfill_explicit_range.backfill_args
+    error_message = "Upgrades and unrelated changes must not alter the backfill and run it again."
   }
 }
 
@@ -151,8 +189,31 @@ run "supports_single_day_backfill" {
 
   variables {
     backfill_enabled    = true
-    backfill_start_date = "2020-01-01"
-    backfill_end_date   = "2020-01-01"
+    backfill_start_date = "2026-04-01"
+    backfill_end_date   = "2026-04-01"
+  }
+
+  assert {
+    condition     = terraform_data.backfill[0].input == "--mode=backfill,--start-date=2026-04-01,--end-date=2026-04-01"
+    error_message = "Equal dates must backfill one day."
+  }
+}
+
+run "supports_400_day_backfill" {
+  command = plan
+
+  variables {
+    backfill_enabled    = true
+    backfill_start_date = "2025-01-01"
+    backfill_end_date   = "2026-02-04"
+  }
+}
+
+run "allows_older_collector_without_backfill" {
+  command = plan
+
+  variables {
+    artifact_version = "1.1.0"
   }
 }
 
@@ -161,10 +222,10 @@ run "rejects_backfill_without_start" {
 
   variables {
     backfill_enabled  = true
-    backfill_end_date = "2020-06-30"
+    backfill_end_date = "2026-09-30"
   }
 
-  expect_failures = [google_cloud_run_v2_job.collector]
+  expect_failures = [terraform_data.backfill]
 }
 
 run "rejects_backfill_without_end" {
@@ -172,10 +233,10 @@ run "rejects_backfill_without_end" {
 
   variables {
     backfill_enabled    = true
-    backfill_start_date = "2020-01-01"
+    backfill_start_date = "2026-04-01"
   }
 
-  expect_failures = [google_cloud_run_v2_job.collector]
+  expect_failures = [terraform_data.backfill]
 }
 
 run "rejects_reversed_backfill_range" {
@@ -183,11 +244,44 @@ run "rejects_reversed_backfill_range" {
 
   variables {
     backfill_enabled    = true
-    backfill_start_date = "2020-06-30"
-    backfill_end_date   = "2020-01-01"
+    backfill_start_date = "2026-09-30"
+    backfill_end_date   = "2026-04-01"
   }
 
-  expect_failures = [google_cloud_run_v2_job.collector]
+  expect_failures = [terraform_data.backfill]
+}
+
+run "rejects_backfill_over_400_days" {
+  command = plan
+
+  variables {
+    backfill_enabled    = true
+    backfill_start_date = "2025-01-01"
+    backfill_end_date   = "2026-02-05"
+  }
+
+  expect_failures = [terraform_data.backfill]
+}
+
+run "rejects_backfill_on_older_collector" {
+  command = plan
+
+  variables {
+    backfill_enabled = true
+    artifact_version = "1.1.0"
+  }
+
+  expect_failures = [terraform_data.backfill]
+}
+
+run "rejects_invalid_backfill_timeout" {
+  command = plan
+
+  variables {
+    backfill_timeout_seconds = 30
+  }
+
+  expect_failures = [var.backfill_timeout_seconds]
 }
 
 run "rejects_invalid_start_date" {

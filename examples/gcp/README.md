@@ -8,11 +8,13 @@ See `modules/gcp/README.md` for prerequisites, required inputs, permissions,
 manual execution, and secure state requirements.
 
 The example exposes `backfill_enabled` (default `false`),
-`backfill_start_date`, and `backfill_end_date`. To replay historical data,
-enable the flag and optionally supply both inclusive dates in `YYYY-MM-DD`
-format. Omitting both dates defaults to 15 inclusive dates ending at the daily
-evaluation date (N-16 through N-2 with the default lag), calculated at execution.
-Supplying only one date is an error.
-Use a released collector image that supports date-range backfill. Apply,
-execute the job manually, then disable the flag and apply again to restore
-daily collection. See the module's historical backfill section for details.
+`backfill_start_date`, `backfill_end_date`, `backfill_wait` (default `true`),
+and `backfill_timeout_seconds` (default `3600`). When enabled, `terraform apply`
+executes the Cloud Run Job once with `--mode=backfill` arguments, without
+changing the saved job or the daily schedule. Omitting both dates backfills 15
+inclusive dates ending at N-3, calculated at execution; supply both dates for an
+explicit range of at most 400 dates. Later applies do not repeat the backfill
+unless the dates change or the flag is turned off and on again. It requires
+collector 2.0.0 or later and a `gcloud` identity that can execute the job with
+overrides, such as `roles/run.developer`. See the module's historical backfill
+section for details.

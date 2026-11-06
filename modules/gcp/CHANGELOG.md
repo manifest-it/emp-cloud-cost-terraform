@@ -1,5 +1,16 @@
 # Changelog
 
+## [1.0.0](https://github.com/manifest-it/emp-cloud-cost-terraform/compare/gcp-terraform-v0.4.0...gcp-terraform-v1.0.0) (2026-11-06)
+
+
+### ⚠ BREAKING CHANGES
+
+* **gcp:** trigger historical backfill during Terraform apply
+
+### Features
+
+* **gcp:** trigger historical backfill during Terraform apply ([a76c6d1](https://github.com/manifest-it/emp-cloud-cost-terraform/commit/a76c6d10b597b5478c5b7a63dd61c3b7b405d492))
+
 ## [0.4.0](https://github.com/manifest-it/emp-cloud-cost-terraform/compare/gcp-terraform-v0.3.0...gcp-terraform-v0.4.0) (2026-10-29)
 
 

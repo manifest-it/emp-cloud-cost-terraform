@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.1.0](https://github.com/manifest-it/emp-cloud-cost-terraform/compare/gcp-terraform-v1.0.0...gcp-terraform-v1.1.0) (2026-11-16)
+
+
+### Features
+
+* **gcp:** automate historical backfill execution through Terraform ([cd8d49d](https://github.com/manifest-it/emp-cloud-cost-terraform/commit/cd8d49d8ed97aa3bca5e778c28a257b2b930e389))
+* **gcp:** automate historical backfill execution through Terraform ([584f712](https://github.com/manifest-it/emp-cloud-cost-terraform/commit/584f712c0039edc12f54665d97b47637c955b99f))
+
 ## [1.0.0](https://github.com/manifest-it/emp-cloud-cost-terraform/compare/gcp-terraform-v0.4.0...gcp-terraform-v1.0.0) (2026-11-06)
 
 

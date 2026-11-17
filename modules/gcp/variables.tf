@@ -212,7 +212,7 @@ variable "backfill_enabled" {
 }
 
 variable "backfill_start_date" {
-  description = "Optional first usage date (YYYY-MM-DD) of an explicit backfill range. Supply with backfill_end_date, or omit both for 15 dates ending the day before the daily evaluation date (N-3)."
+  description = "Optional first usage date (YYYY-MM-DD) of an explicit backfill range. Supply with backfill_end_date, or omit both for 15 dates ending on the daily evaluation date (N-2)."
   type        = string
   default     = ""
   nullable    = false
@@ -224,7 +224,7 @@ variable "backfill_start_date" {
 }
 
 variable "backfill_end_date" {
-  description = "Optional last usage date (YYYY-MM-DD) of an explicit backfill range of at most 400 dates. The collector rejects dates after N-3, which the daily schedule covers."
+  description = "Optional last usage date (YYYY-MM-DD) of an explicit backfill range of at most 400 dates. The collector rejects dates after N-2, the daily evaluation date."
   type        = string
   default     = ""
   nullable    = false

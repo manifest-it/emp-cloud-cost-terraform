@@ -84,9 +84,9 @@ Enable a backfill:
 
 ```hcl
 backfill_enabled = true
-backfill_days    = 15 # default; ends at N-3, 1-400 days
+backfill_days    = 15 # default; ends at N-2, 1-400 days
 
-# Or an explicit inclusive range instead of backfill_days (end must be <= N-3):
+# Or an explicit inclusive range instead of backfill_days (end must be <= N-2):
 # backfill_start_date = "2026-01-01"
 # backfill_end_date   = "2026-06-30"
 ```
@@ -105,7 +105,7 @@ Lifecycle:
 - Setting `backfill_enabled = false` only removes the record from state; it
   does not invoke the Lambda.
 
-By default the backfill ends at N-3 so it never overlaps the daily N-2 run. The
+By default the backfill ends at N-2, the date the daily run collects. The
 collector issues one Cost Explorer query for the whole range (with a seven-day
 anomaly baseline) and sends all days in one batched EMP push.
 Dates Cost Explorer omits are not synthesized as zero-cost samples. Backfilled

@@ -12,7 +12,7 @@ The example exposes `backfill_enabled` (default `false`),
 and `backfill_timeout_seconds` (default `3600`). When enabled, `terraform apply`
 executes the Cloud Run Job once with `--mode=backfill` arguments, without
 changing the saved job or the daily schedule. Omitting both dates backfills 15
-inclusive dates ending at N-3, calculated at execution; supply both dates for an
+inclusive dates ending at N-2, calculated at execution; supply both dates for an
 explicit range of at most 400 dates. Later applies do not repeat the backfill
 unless the dates change or the flag is turned off and on again. It requires
 collector 2.0.0 or later and a `gcloud` identity that can execute the job with

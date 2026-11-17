@@ -161,7 +161,7 @@ variable "backfill_enabled" {
 }
 
 variable "backfill_days" {
-  description = "Number of historical billing days to backfill, ending the day before the daily evaluation date (N-3). Ignored when backfill_start_date and backfill_end_date are set."
+  description = "Number of historical billing days to backfill, ending on the daily evaluation date (N-2). Ignored when backfill_start_date and backfill_end_date are set."
   type        = number
   default     = 15
   nullable    = false
@@ -185,7 +185,7 @@ variable "backfill_start_date" {
 }
 
 variable "backfill_end_date" {
-  description = "Optional last billing date (YYYY-MM-DD) of an explicit backfill range. The collector rejects dates after N-3, which the daily schedule covers."
+  description = "Optional last billing date (YYYY-MM-DD) of an explicit backfill range. The collector rejects dates after N-2, the daily evaluation date."
   type        = string
   default     = ""
   nullable    = false

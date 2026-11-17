@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.1.1](https://github.com/manifest-it/emp-cloud-cost-terraform/compare/gcp-terraform-v1.1.0...gcp-terraform-v1.1.1) (2026-11-17)
+
+
+### Bug Fixes
+
+* **gcp/aws:** update backfill days reference from N-3 to N-2 ([4e333e1](https://github.com/manifest-it/emp-cloud-cost-terraform/commit/4e333e128f3eb61b16db622f90bc56f5d87c08d3))
+* **gcp/aws:** update backfill days reference from N-3 to N-2 ([8f43d67](https://github.com/manifest-it/emp-cloud-cost-terraform/commit/8f43d67a7563b2e10005d117613375c141ee9b06))
+
 ## [1.1.0](https://github.com/manifest-it/emp-cloud-cost-terraform/compare/gcp-terraform-v1.0.0...gcp-terraform-v1.1.0) (2026-11-16)
 
 

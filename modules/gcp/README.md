@@ -185,9 +185,9 @@ The execution arguments select the collector mode:
 Enable a backfill with collector `artifact_version` 2.0.0 or later:
 
 ```hcl
-backfill_enabled = true # 15 dates ending at N-3
+backfill_enabled = true # 15 dates ending at N-2
 
-# Or an explicit inclusive range of at most 400 dates (end must be <= N-3):
+# Or an explicit inclusive range of at most 400 dates (end must be <= N-2):
 # backfill_start_date = "2026-04-01"
 # backfill_end_date   = "2026-09-30"
 
@@ -217,12 +217,12 @@ Lifecycle:
   earlier backfill, the script fails the apply without starting another. Apply
   again after it finishes.
 
-N-3 is the day before the daily run's evaluation date (N-2 with the default
-`evaluation_lag_days`), so a backfill never overlaps the daily run. Without
-dates, the collector backfills 15 dates ending at N-3, calculated at execution
+N-2 is the daily run's evaluation date with the default `evaluation_lag_days`,
+so a backfill ending there leaves no gap before the next daily run. Without
+dates, the collector backfills 15 dates ending at N-2, calculated at execution
 from `timezone` and `evaluation_lag_days`. Explicit dates must be valid `YYYY-MM-DD`, supplied together, in
 order, and span at most 400 dates; Terraform checks these during plan. The
-collector rejects an end date after N-3 when it executes. It reads seven extra
+collector rejects an end date after N-2 when it executes. It reads seven extra
 days for anomaly baselines and pushes one EMP request per day with billing data.
 EMP pushes are idempotent, so retrying a failed backfill is safe.
 

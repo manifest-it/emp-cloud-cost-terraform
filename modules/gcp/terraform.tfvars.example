@@ -22,7 +22,7 @@ schedule_expression = "0 10 * * *"
 schedule_timezone   = "UTC"
 
 # One-time historical backfill executed during terraform apply. Later applies do
-# not repeat it unless the dates change. Omit both dates for 15 dates ending at N-3.
+# not repeat it unless the dates change. Omit both dates for 15 dates ending at N-2.
 backfill_enabled    = false
 backfill_start_date = ""
 backfill_end_date   = ""
